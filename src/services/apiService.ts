@@ -11,6 +11,12 @@ const apiCall = async <T>(method: string, endpoint: string, body?: any): Promise
   }
   
   const response = await fetch(`${BASE_URL}${endpoint}`, config);
+  
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(`HTTP ${response.status}: ${errorData.message || response.statusText}`);
+  }
+  
   return response.json();
 };
 

@@ -14,11 +14,15 @@ export const companyService = {
   },
 
   async registerCompany(company: Omit<Company, 'id'>): Promise<Company> {
-    return apiService.post<Company>(process.env.REACT_APP_REGISTER_ENDPOINT || '', company);
+    const endpoint = process.env.REACT_APP_REGISTER_ENDPOINT || '';
+    return apiService.post<Company>(endpoint, company);
   },
 
-  async updateCompany(id: number, updates: Partial<Company>): Promise<Company> {
-    return apiService.put<Company>(`${process.env.REACT_APP_COMPANY_LIST_ENDPOINT}/${id}`, updates);
+  async updateCompany(id: number, statusUpdate: { status: string }): Promise<{ message: string }> {
+    let endpoint = process.env.REACT_APP_UPDATE_COMPANY_STATUS_ENDPOINT || '';
+    endpoint = endpoint.replace('{companyId}', id.toString());
+    console.log(`Final endpoint: ${endpoint}`);
+    return apiService.put<{ message: string }>(endpoint, statusUpdate);
   },
 
   async deleteCompany(id: number): Promise<void> {

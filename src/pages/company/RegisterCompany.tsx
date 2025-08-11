@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Container, Paper, Typography, TextField, Button, Grid, Alert } from '@mui/material';
+import { companyService } from '../../services/companyService';
 
 const RegisterCompany: React.FC = () => {
   const navigate = useNavigate();
@@ -19,10 +20,12 @@ const RegisterCompany: React.FC = () => {
   });
   
   const [success, setSuccess] = useState(false);
+  const [errorAlert, setErrorAlert] = useState('');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     setErrors({ ...errors, [e.target.name]: '' });
+    setErrorAlert('');
   };
 
   const validateForm = () => {
@@ -41,10 +44,31 @@ const RegisterCompany: React.FC = () => {
     return !Object.values(newErrors).some(error => error);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const registerCompany = async () => {
+    try {
+      const companyData = {
+        name: formData.companyName,
+        spoc: formData.spocName,
+        email_id: formData.emailId,
+        status: 'active' as const
+      };
+      await companyService.registerCompany(companyData);
+      console.log('Company registered successfully');
+    } catch (error: any) {
+      console.error('Error registering company:', error);
+      if (error.message?.includes('409')) {
+        setErrorAlert('Company already exists with this name or email.');
+      } else {
+        setErrors({ ...errors, emailId: 'Failed to register company. Please try again.' });
+        throw error;
+      }
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
-      console.log('Company Registration:', formData);
+      await registerCompany();
       setSuccess(true);
       setTimeout(() => navigate('/'), 2000);
     }
@@ -63,58 +87,35 @@ const RegisterCompany: React.FC = () => {
           </Alert>
         )}
         
+        {errorAlert && (
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {errorAlert}
+          </Alert>
+        )}
+        
         <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 3 }}>
           <Grid container spacing={3}>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Company Name"
-                name="companyName"
-                value={formData.companyName}
-                onChange={handleChange}
-                error={!!errors.companyName}
-                helperText={errors.companyName}
-              />
-            </Grid>
-            
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="SPOC Name"
-                name="spocName"
-                value={formData.spocName}
-                onChange={handleChange}
-                error={!!errors.spocName}
-                helperText={errors.spocName}
-              />
-            </Grid>
-            
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Company Address"
-                name="companyAddress"
-                value={formData.companyAddress}
-                onChange={handleChange}
-                multiline
-                rows={3}
-                error={!!errors.companyAddress}
-                helperText={errors.companyAddress}
-              />
-            </Grid>
-            
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Email ID"
-                name="emailId"
-                type="email"
-                value={formData.emailId}
-                onChange={handleChange}
-                error={!!errors.emailId}
-                helperText={errors.emailId}
-              />
-            </Grid>
+            {[
+              { name: 'companyName', label: 'Company Name', xs: 12, sm: 6 },
+              { name: 'spocName', label: 'SPOC Name', xs: 12, sm: 6 },
+              { name: 'companyAddress', label: 'Company Address', xs: 12, multiline: true, rows: 3 },
+              { name: 'emailId', label: 'Email ID', xs: 12, type: 'email' }
+            ].map(field => (
+              <Grid item xs={field.xs} sm={field.sm} key={field.name}>
+                <TextField
+                  fullWidth
+                  label={field.label}
+                  name={field.name}
+                  type={field.type}
+                  value={formData[field.name as keyof typeof formData]}
+                  onChange={handleChange}
+                  error={!!errors[field.name as keyof typeof errors]}
+                  helperText={errors[field.name as keyof typeof errors]}
+                  multiline={field.multiline}
+                  rows={field.rows}
+                />
+              </Grid>
+            ))}
             
             <Grid item xs={12}>
               <Button
