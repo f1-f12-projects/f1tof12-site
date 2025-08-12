@@ -26,7 +26,7 @@ const AppContent: React.FC = () => {
   const { isAuthenticated } = useAuth();
   
   return (
-    <Router future={{ v7_startTransition: true }}>
+    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         <Header />
         {isAuthenticated && <MegaBar />}

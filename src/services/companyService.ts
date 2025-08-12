@@ -18,14 +18,12 @@ export const companyService = {
     return apiService.post<Company>(endpoint, company);
   },
 
-  async updateCompany(id: number, statusUpdate: { status: string }): Promise<{ message: string }> {
-    let endpoint = process.env.REACT_APP_UPDATE_COMPANY_STATUS_ENDPOINT || '';
+  async updateCompany(id: number, updateData: { status?: string; email_id?: string; spoc?: string }): Promise<{ message: string }> {
+    let endpoint = process.env.REACT_APP_UPDATE_COMPANY_ENDPOINT || '';
+    console.log ('Updates to: ', updateData);
     endpoint = endpoint.replace('{companyId}', id.toString());
     console.log(`Final endpoint: ${endpoint}`);
-    return apiService.put<{ message: string }>(endpoint, statusUpdate);
-  },
-
-  async deleteCompany(id: number): Promise<void> {
-    return apiService.delete<void>(`${process.env.REACT_APP_COMPANY_LIST_ENDPOINT}/${id}`);
+    return apiService.put<{ message: string }>(endpoint, updateData);
   }
+
 };

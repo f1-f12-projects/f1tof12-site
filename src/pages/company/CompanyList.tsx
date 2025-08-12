@@ -3,10 +3,11 @@ import { Container, Paper, Typography, Table, TableBody, TableCell, TableContain
 import { Edit, Search, Business } from '@mui/icons-material';
 import { Company } from '../../models/Company';
 import { companyService } from '../../services/companyService';
+import { formatDateTimeIST } from '../../utils/dateUtils';
 
 const CompanyList: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('active');
   const [companies, setCompanies] = useState<Company[]>([]);
   const [editOpen, setEditOpen] = useState(false);
   const [editCompany, setEditCompany] = useState<Company | null>(null);
@@ -44,9 +45,8 @@ const CompanyList: React.FC = () => {
       if (confirmed) {
         try {
           await companyService.updateCompany(id, { status: newStatus });
-          setCompanies(companies.map(c => 
-            c.id === id ? { ...c, status: newStatus } : c
-          ));
+          const refreshedData = await companyService.getCompanies();
+          setCompanies(refreshedData);
         } catch (error) {
           console.error('Failed to update company status:', error);
         }
@@ -54,13 +54,26 @@ const CompanyList: React.FC = () => {
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (editCompany) {
-      setCompanies(companies.map(company =>
-        company.id === editCompany.id
-          ? { ...company, spoc: editForm.spoc, email_id: editForm.email_id }
-          : company
-      ));
+      const updateData: { spoc?: string; email_id?: string } = {};
+      
+      if (editForm.spoc !== editCompany.spoc) {
+        updateData.spoc = editForm.spoc;
+      }
+      if (editForm.email_id !== editCompany.email_id) {
+        updateData.email_id = editForm.email_id;
+      }
+      
+      if (Object.keys(updateData).length > 0) {
+        try {
+          await companyService.updateCompany(editCompany.id, updateData);
+          const refreshedData = await companyService.getCompanies();
+          setCompanies(refreshedData);
+        } catch (error) {
+          console.error('Failed to update company:', error);
+        }
+      }
     }
     setEditOpen(false);
   };
@@ -131,6 +144,8 @@ const CompanyList: React.FC = () => {
                     <TableCell sx={{ fontWeight: 600, py: 2 }}>Contact Person</TableCell>
                     <TableCell sx={{ fontWeight: 600, py: 2 }}>Email</TableCell>
                     <TableCell sx={{ fontWeight: 600, py: 2 }}>Status</TableCell>
+                    <TableCell sx={{ fontWeight: 600, py: 2 }}>Created Date</TableCell>
+                    <TableCell sx={{ fontWeight: 600, py: 2 }}>Last Updated</TableCell>
                     <TableCell sx={{ fontWeight: 600, py: 2 }}>Actions</TableCell>
                   </TableRow>
                 </TableHead>
@@ -174,6 +189,16 @@ const CompanyList: React.FC = () => {
                         />
                       </TableCell>
                       <TableCell sx={{ py: 3 }}>
+                        <Typography variant="body2" color="text.secondary">
+                          {formatDateTimeIST(company.created_date)}
+                        </Typography>
+                      </TableCell>
+                      <TableCell sx={{ py: 3 }}>
+                        <Typography variant="body2" color="text.secondary">
+                          {formatDateTimeIST(company.updated_date)}
+                        </Typography>
+                      </TableCell>
+                      <TableCell sx={{ py: 3 }}>
                         <Stack direction="row" alignItems="center" spacing={1}>
                           <Switch
                             checked={company.status === 'active'}
@@ -208,10 +233,8 @@ const CompanyList: React.FC = () => {
           fullWidth
           PaperProps={{ sx: { borderRadius: 3 } }}
         >
-          <DialogTitle sx={{ pb: 1 }}>
-            <Typography variant="h6" fontWeight={600}>
-              Edit Company Details
-            </Typography>
+          <DialogTitle sx={{ pb: 1, fontWeight: 600 }}>
+            Edit Company Details
           </DialogTitle>
           <Divider />
           <DialogContent sx={{ pt: 3 }}>

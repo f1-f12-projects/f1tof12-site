@@ -1,11 +1,10 @@
 import React from 'react';
-import { Box, Container, Typography, Link, Grid } from '@mui/material';
+import { Box, Typography, Link, Grid } from '@mui/material';
 
 const Footer: React.FC = () => {
   return (
-    <Box sx={{ bgcolor: 'grey.900', color: 'white', py: 4, mt: 'auto' }}>
-      <Container maxWidth="lg">
-        <Grid container spacing={4}>
+    <Box sx={{ bgcolor: 'grey.900', color: 'white', py: 4, mt: 'auto', px: 4 }}>
+      <Grid container spacing={4}>
           <Grid item xs={12} sm={3}>
             <Typography variant="h6" gutterBottom>
               Company
@@ -36,13 +35,12 @@ const Footer: React.FC = () => {
             <Link href="#" color="inherit" underline="hover" display="block">LinkedIn</Link>
             <Link href="#" color="inherit" underline="hover" display="block">Twitter</Link>
           </Grid>
-        </Grid>
-        <Box sx={{ borderTop: 1, borderColor: 'grey.700', mt: 4, pt: 2, textAlign: 'center' }}>
-          <Typography variant="body2">
-            © 2024 F1toF12. All rights reserved.
-          </Typography>
-        </Box>
-      </Container>
+      </Grid>
+      <Box sx={{ borderTop: 1, borderColor: 'grey.700', mt: 4, pt: 2, textAlign: 'center' }}>
+        <Typography variant="body2">
+          © 2024 F1toF12. All rights reserved.
+        </Typography>
+      </Box>
     </Box>
   );
 };

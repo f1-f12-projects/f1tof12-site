@@ -1,12 +1,12 @@
 import React from 'react';
-import { CssBaseline, Container } from '@mui/material';
+import { CssBaseline } from '@mui/material';
 
 const MaterialUIWrapper: React.FC = ({ children }) => {
   return (
-    <Container>
+    <>
       <CssBaseline />
       {children}
-    </Container>
+    </>
   );
 };
 
