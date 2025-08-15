@@ -2,6 +2,8 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppBar, Toolbar, Typography, Button, Box } from '@mui/material';
 import { useAuth } from '../context/AuthContext';
+import { alert } from '../utils/alert';
+import ThemeToggle from './ThemeToggle';
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
@@ -20,12 +22,12 @@ const Header: React.FC = () => {
     try {
       const response = await fetch(`${process.env.REACT_APP_BASE_URL}/health`);
       if (response.ok) {
-        alert('API is working!');
+        alert.success('API is working!');
       } else {
-        alert('API is not responding properly');
+        alert.error('API is not responding properly');
       }
     } catch (error) {
-      alert('API is not reachable');
+      alert.error('API is not reachable');
     }
   };
   
@@ -42,6 +44,7 @@ const Header: React.FC = () => {
             F1toF12
           </Typography>
         </Box>
+        <ThemeToggle />
         <Button 
           color="inherit" 
           variant="outlined" 

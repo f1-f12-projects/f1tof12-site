@@ -8,6 +8,60 @@ const MegaBar: React.FC = () => {
   const navigate = useNavigate();
   let timeoutId: NodeJS.Timeout;
 
+  const mainButtonStyle = {
+    color: 'text.primary',
+    fontWeight: 600,
+    textTransform: 'none',
+    fontSize: '1rem',
+    px: 3,
+    py: 1.5,
+    borderRadius: 2,
+    transition: 'all 0.2s ease',
+    '&:hover': {
+      bgcolor: 'primary.main',
+      color: 'white',
+      transform: 'translateY(-1px)'
+    }
+  };
+
+  const dropdownPaperStyle = {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
+    zIndex: 1000,
+    bgcolor: 'background.paper',
+    borderRadius: 0,
+    borderTop: '3px solid',
+    borderColor: 'primary.main',
+    animation: 'slideDown 0.2s ease-out'
+  };
+
+  const dropdownButtonStyle = {
+    color: 'text.primary',
+    fontWeight: 500,
+    textTransform: 'none',
+    fontSize: '0.95rem',
+    px: 4,
+    py: 2,
+    borderRadius: 3,
+    border: '1px solid transparent',
+    transition: 'all 0.2s ease',
+    '&:hover': {
+      bgcolor: 'primary.light',
+      color: 'primary.dark',
+      border: '1px solid',
+      borderColor: 'primary.main',
+      transform: 'scale(1.05)'
+    }
+  };
+
+  const companyOptions = [
+    { label: 'Register', path: '/company/register' },
+    { label: 'List', path: '/company/list' },
+    { label: 'SPOC', path: '/company/spoc' }
+  ];
+
   const handleMouseEnter = () => {
     clearTimeout(timeoutId);
     setShowCompanyOptions(true);
@@ -18,26 +72,12 @@ const MegaBar: React.FC = () => {
   };
 
   return (
-    <Box sx={{ bgcolor: 'white', borderBottom: '1px solid #e0e0e0', position: 'relative' }}>
+    <Box sx={{ bgcolor: 'background.paper', borderBottom: 1, borderColor: 'divider', position: 'relative' }}>
       <Container maxWidth="lg">
         <Box sx={{ display: 'flex', justifyContent: 'center', gap: 6, py: 2 }}>
           <Button
             variant="text"
-            sx={{ 
-              color: 'text.primary',
-              fontWeight: 600,
-              textTransform: 'none',
-              fontSize: '1rem',
-              px: 3,
-              py: 1.5,
-              borderRadius: 2,
-              transition: 'all 0.2s ease',
-              '&:hover': {
-                bgcolor: 'primary.main',
-                color: 'white',
-                transform: 'translateY(-1px)'
-              }
-            }}
+            sx={mainButtonStyle}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
             endIcon={<KeyboardArrowDown sx={{ 
@@ -52,21 +92,7 @@ const MegaBar: React.FC = () => {
             <Button
               key={item}
               variant="text"
-              sx={{
-                color: 'text.primary',
-                fontWeight: 600,
-                textTransform: 'none',
-                fontSize: '1rem',
-                px: 3,
-                py: 1.5,
-                borderRadius: 2,
-                transition: 'all 0.2s ease',
-                '&:hover': {
-                  bgcolor: 'primary.main',
-                  color: 'white',
-                  transform: 'translateY(-1px)'
-                }
-              }}
+              sx={mainButtonStyle}
             >
               {item}
             </Button>
@@ -76,71 +102,22 @@ const MegaBar: React.FC = () => {
         {showCompanyOptions && (
           <Paper
             elevation={8}
-            sx={{
-              position: 'absolute',
-              top: '100%',
-              left: 0,
-              right: 0,
-              zIndex: 1000,
-              bgcolor: 'white',
-              borderRadius: 0,
-              borderTop: '3px solid',
-              borderColor: 'primary.main',
-              animation: 'slideDown 0.2s ease-out'
-            }}
+            sx={dropdownPaperStyle}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
           >
             <Container maxWidth="lg">
               <Box sx={{ display: 'flex', justifyContent: 'center', gap: 8, py: 3 }}>
-                <Button
-                  variant="text"
-                  onClick={() => navigate('/company/register')}
-                  sx={{
-                    color: 'text.primary',
-                    fontWeight: 500,
-                    textTransform: 'none',
-                    fontSize: '0.95rem',
-                    px: 4,
-                    py: 2,
-                    borderRadius: 3,
-                    border: '1px solid transparent',
-                    transition: 'all 0.2s ease',
-                    '&:hover': {
-                      bgcolor: 'primary.light',
-                      color: 'primary.dark',
-                      border: '1px solid',
-                      borderColor: 'primary.main',
-                      transform: 'scale(1.05)'
-                    }
-                  }}
-                >
-                  Register
-                </Button>
-                <Button
-                  variant="text"
-                  onClick={() => navigate('/company/list')}
-                  sx={{
-                    color: 'text.primary',
-                    fontWeight: 500,
-                    textTransform: 'none',
-                    fontSize: '0.95rem',
-                    px: 4,
-                    py: 2,
-                    borderRadius: 3,
-                    border: '1px solid transparent',
-                    transition: 'all 0.2s ease',
-                    '&:hover': {
-                      bgcolor: 'primary.light',
-                      color: 'primary.dark',
-                      border: '1px solid',
-                      borderColor: 'primary.main',
-                      transform: 'scale(1.05)'
-                    }
-                  }}
-                >
-                  List
-                </Button>
+                {companyOptions.map(({ label, path }) => (
+                  <Button
+                    key={label}
+                    variant="text"
+                    onClick={() => navigate(path)}
+                    sx={dropdownButtonStyle}
+                  >
+                    {label}
+                  </Button>
+                ))}
               </Box>
             </Container>
           </Paper>

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Container, Paper, Typography, TextField, Button, Grid, Alert } from '@mui/material';
+import { Box, Container, Paper, Typography, TextField, Button, Grid } from '@mui/material';
 import { companyService } from '../../services/companyService';
+import { alert } from '../../utils/alert';
 
 const RegisterCompany: React.FC = () => {
   const navigate = useNavigate();
@@ -19,13 +20,11 @@ const RegisterCompany: React.FC = () => {
     emailId: ''
   });
   
-  const [success, setSuccess] = useState(false);
-  const [errorAlert, setErrorAlert] = useState('');
+
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     setErrors({ ...errors, [e.target.name]: '' });
-    setErrorAlert('');
   };
 
   const validateForm = () => {
@@ -53,13 +52,13 @@ const RegisterCompany: React.FC = () => {
         status: 'active' as const
       };
       await companyService.registerCompany(companyData);
-      console.log('Company registered successfully');
+      alert.success('Company registered successfully!');
     } catch (error: any) {
       console.error('Error registering company:', error);
       if (error.message?.includes('409')) {
-        setErrorAlert('Company already exists with this name or email.');
+        alert.error('Company already exists with this name or email.');
       } else {
-        setErrors({ ...errors, emailId: 'Failed to register company. Please try again.' });
+        alert.error('Failed to register company. Please try again.');
         throw error;
       }
     }
@@ -68,9 +67,12 @@ const RegisterCompany: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
-      await registerCompany();
-      setSuccess(true);
-      setTimeout(() => navigate('/'), 2000);
+      try {
+        await registerCompany();
+        setTimeout(() => navigate('/'), 2000);
+      } catch (error) {
+        // Error already handled in registerCompany
+      }
     }
   };
 
@@ -81,17 +83,7 @@ const RegisterCompany: React.FC = () => {
           Register Company
         </Typography>
         
-        {success && (
-          <Alert severity="success" sx={{ mb: 3 }}>
-            Company registered successfully! Redirecting to home...
-          </Alert>
-        )}
-        
-        {errorAlert && (
-          <Alert severity="error" sx={{ mb: 3 }}>
-            {errorAlert}
-          </Alert>
-        )}
+
         
         <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 3 }}>
           <Grid container spacing={3}>
@@ -123,7 +115,7 @@ const RegisterCompany: React.FC = () => {
                 variant="contained"
                 size="large"
                 fullWidth
-                disabled={success}
+
                 sx={{ 
                   mt: 2, 
                   py: 1.5,
@@ -132,7 +124,7 @@ const RegisterCompany: React.FC = () => {
                   fontSize: '1.1rem'
                 }}
               >
-                {success ? 'Registered Successfully!' : 'Register Company'}
+                Register Company
               </Button>
             </Grid>
           </Grid>

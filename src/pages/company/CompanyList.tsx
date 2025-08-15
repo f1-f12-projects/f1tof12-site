@@ -1,9 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Container, Paper, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Box, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Button, Switch, Chip, Avatar, Stack, Card, Divider, ToggleButton, ToggleButtonGroup } from '@mui/material';
 import { Edit, Search, Business } from '@mui/icons-material';
 import { Company } from '../../models/Company';
 import { companyService } from '../../services/companyService';
 import { formatDateTimeIST } from '../../utils/dateUtils';
+import { tableStyles } from '../../styles/tableStyles';
+import { alert } from '../../utils/alert';
+import { showConfirm } from '../../utils/confirm';
 
 const CompanyList: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -12,6 +15,7 @@ const CompanyList: React.FC = () => {
   const [editOpen, setEditOpen] = useState(false);
   const [editCompany, setEditCompany] = useState<Company | null>(null);
   const [editForm, setEditForm] = useState({ spoc: '', email_id: '' });
+  const [emailError, setEmailError] = useState('');
 
   useEffect(() => {
     const loadCompanies = async () => {
@@ -19,17 +23,19 @@ const CompanyList: React.FC = () => {
         const data = await companyService.getCompanies();
         setCompanies(data);
       } catch (error) {
-        console.error('Failed to load companies:', error);
+        alert.error('Failed to load companies');
       }
     };
     loadCompanies();
   }, []);
 
-  const filteredCompanies = companies.filter(company => {
-    const matchesSearch = company.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || company.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const filteredCompanies = useMemo(() => 
+    companies.filter(company => {
+      const sanitizedSearchTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').toLowerCase();
+      const matchesSearch = company.name.toLowerCase().includes(sanitizedSearchTerm);
+      const matchesStatus = statusFilter === 'all' || company.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    }), [companies, searchTerm, statusFilter]);
 
   const handleEdit = (company: Company) => {
     setEditCompany(company);
@@ -39,23 +45,37 @@ const CompanyList: React.FC = () => {
 
   const handleStatusToggle = async (id: number) => {
     const company = companies.find(c => c.id === id);
-    if (company) {
-      const newStatus = company.status === 'active' ? 'inactive' : 'active';
-      const confirmed = window.confirm(`Are you sure you want to change ${company.name} status to ${newStatus}?`);
-      if (confirmed) {
-        try {
-          await companyService.updateCompany(id, { status: newStatus });
-          const refreshedData = await companyService.getCompanies();
-          setCompanies(refreshedData);
-        } catch (error) {
-          console.error('Failed to update company status:', error);
-        }
-      }
+    if (!company) return;
+    
+    const newStatus = company.status === 'active' ? 'inactive' : 'active';
+    const sanitizedCompanyName = company.name.replace(/[^a-zA-Z0-9\s-_.]/g, '');
+    
+    const confirmed = await showConfirm(
+      `Are you sure you want to change ${sanitizedCompanyName} status to ${newStatus}?`,
+      'Update Company Status'
+    );
+    
+    if (!confirmed) return;
+    
+    try {
+      await companyService.updateCompany(id, { status: newStatus });
+      setCompanies(prev => prev.map(c => 
+        c.id === id ? { ...c, status: newStatus } : c
+      ));
+      alert.success(`Company status updated to ${newStatus}`);
+    } catch (error) {
+      alert.error('Failed to update company status');
     }
   };
 
   const handleSave = async () => {
     if (editCompany) {
+      // Validate email format
+      if (editForm.email_id && !/\S+@\S+\.\S+/.test(editForm.email_id)) {
+        alert.error('Please enter a valid email address');
+        return;
+      }
+      
       const updateData: { spoc?: string; email_id?: string } = {};
       
       if (editForm.spoc !== editCompany.spoc) {
@@ -68,10 +88,12 @@ const CompanyList: React.FC = () => {
       if (Object.keys(updateData).length > 0) {
         try {
           await companyService.updateCompany(editCompany.id, updateData);
-          const refreshedData = await companyService.getCompanies();
-          setCompanies(refreshedData);
+          setCompanies(prev => prev.map(c => 
+            c.id === editCompany.id ? { ...c, ...updateData } : c
+          ));
+          alert.success('Company details updated successfully');
         } catch (error) {
-          console.error('Failed to update company:', error);
+          alert.error('Failed to update company details');
         }
       }
     }
@@ -81,7 +103,9 @@ const CompanyList: React.FC = () => {
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Card elevation={0} sx={{ borderRadius: 4, border: '1px solid', borderColor: 'divider' }}>
-        <Box sx={{ p: 4, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', borderRadius: '16px 16px 0 0' }}>
+        <Box sx={{ p: 4, background: (theme) => theme.palette.mode === 'dark' 
+          ? 'linear-gradient(135deg, #424242 0%, #616161 100%)' 
+          : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', borderRadius: '16px 16px 0 0' }}>
           <Typography variant="h4" component="h1" sx={{ color: 'white', fontWeight: 700, mb: 1 }}>
             Company Directory
           </Typography>
@@ -103,7 +127,7 @@ const CompanyList: React.FC = () => {
               sx={{ 
                 '& .MuiOutlinedInput-root': {
                   borderRadius: 3,
-                  backgroundColor: 'grey.50'
+                  backgroundColor: 'action.hover'
                 }
               }}
             />
@@ -126,8 +150,8 @@ const CompanyList: React.FC = () => {
           </Stack>
         
           {filteredCompanies.length === 0 ? (
-            <Box sx={{ textAlign: 'center', py: 8 }}>
-              <Business sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
+            <Box sx={tableStyles.emptyState}>
+              <Business sx={tableStyles.emptyIcon} />
               <Typography variant="h6" color="text.secondary" gutterBottom>
                 No companies found
               </Typography>
@@ -136,32 +160,28 @@ const CompanyList: React.FC = () => {
               </Typography>
             </Box>
           ) : (
-            <TableContainer sx={{ borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+            <TableContainer sx={tableStyles.container}>
               <Table>
                 <TableHead>
-                  <TableRow sx={{ backgroundColor: 'grey.50' }}>
-                    <TableCell sx={{ fontWeight: 600, py: 2 }}>Company</TableCell>
-                    <TableCell sx={{ fontWeight: 600, py: 2 }}>Contact Person</TableCell>
-                    <TableCell sx={{ fontWeight: 600, py: 2 }}>Email</TableCell>
-                    <TableCell sx={{ fontWeight: 600, py: 2 }}>Status</TableCell>
-                    <TableCell sx={{ fontWeight: 600, py: 2 }}>Created Date</TableCell>
-                    <TableCell sx={{ fontWeight: 600, py: 2 }}>Last Updated</TableCell>
-                    <TableCell sx={{ fontWeight: 600, py: 2 }}>Actions</TableCell>
+                  <TableRow sx={tableStyles.headerRow}>
+                    <TableCell sx={tableStyles.headerCell}>Company</TableCell>
+                    <TableCell sx={tableStyles.headerCell}>Contact Person</TableCell>
+                    <TableCell sx={tableStyles.headerCell}>Email</TableCell>
+                    <TableCell sx={tableStyles.headerCell}>Created Date</TableCell>
+                    <TableCell sx={tableStyles.headerCell}>Last Updated</TableCell>
+                    <TableCell sx={tableStyles.headerCell}>Status</TableCell>
+                    <TableCell sx={tableStyles.headerCell}>Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {filteredCompanies.map((company, index) => (
                     <TableRow 
                       key={company.id}
-                      sx={{ 
-                        '&:hover': { backgroundColor: 'action.hover' },
-                        borderBottom: index === filteredCompanies.length - 1 ? 'none' : '1px solid',
-                        borderColor: 'divider'
-                      }}
+                      sx={tableStyles.bodyRow(index === filteredCompanies.length - 1)}
                     >
-                      <TableCell sx={{ py: 3 }}>
+                      <TableCell sx={tableStyles.bodyCell}>
                         <Stack direction="row" alignItems="center" spacing={2}>
-                          <Avatar sx={{ bgcolor: 'primary.main', width: 40, height: 40 }}>
+                          <Avatar sx={tableStyles.avatar}>
                             {company.name.charAt(0).toUpperCase()}
                           </Avatar>
                           <Typography variant="subtitle1" fontWeight={500}>
@@ -169,36 +189,36 @@ const CompanyList: React.FC = () => {
                           </Typography>
                         </Stack>
                       </TableCell>
-                      <TableCell sx={{ py: 3 }}>
+                      <TableCell sx={tableStyles.bodyCell}>
                         <Typography variant="body2" color="text.primary">
                           {company.spoc}
                         </Typography>
                       </TableCell>
-                      <TableCell sx={{ py: 3 }}>
+                      <TableCell sx={tableStyles.bodyCell}>
                         <Typography variant="body2" color="text.secondary">
                           {company.email_id}
                         </Typography>
                       </TableCell>
-                      <TableCell sx={{ py: 3 }}>
+                      <TableCell sx={tableStyles.bodyCell}>
+                        <Typography variant="body2" color="text.secondary">
+                          {formatDateTimeIST(company.created_date)}
+                        </Typography>
+                      </TableCell>
+                      <TableCell sx={tableStyles.bodyCell}>
+                        <Typography variant="body2" color="text.secondary">
+                          {formatDateTimeIST(company.updated_date)}
+                        </Typography>
+                      </TableCell>
+                      <TableCell sx={tableStyles.bodyCell}>
                         <Chip 
-                          label={company.status.charAt(0).toUpperCase() + company.status.slice(1)} 
+                          label={company.status.charAt(0).toUpperCase() + company.status.slice(1)}
                           color={company.status === 'active' ? 'success' : 'default'}
                           variant={company.status === 'active' ? 'filled' : 'outlined'}
                           size="small"
                           sx={{ fontWeight: 500 }}
                         />
                       </TableCell>
-                      <TableCell sx={{ py: 3 }}>
-                        <Typography variant="body2" color="text.secondary">
-                          {formatDateTimeIST(company.created_date)}
-                        </Typography>
-                      </TableCell>
-                      <TableCell sx={{ py: 3 }}>
-                        <Typography variant="body2" color="text.secondary">
-                          {formatDateTimeIST(company.updated_date)}
-                        </Typography>
-                      </TableCell>
-                      <TableCell sx={{ py: 3 }}>
+                      <TableCell sx={tableStyles.bodyCell}>
                         <Stack direction="row" alignItems="center" spacing={1}>
                           <Switch
                             checked={company.status === 'active'}
@@ -209,10 +229,7 @@ const CompanyList: React.FC = () => {
                           <IconButton 
                             onClick={() => handleEdit(company)}
                             size="small"
-                            sx={{ 
-                              color: 'primary.main',
-                              '&:hover': { backgroundColor: 'primary.50' }
-                            }}
+                            sx={tableStyles.actionButton}
                           >
                             <Edit fontSize="small" />
                           </IconButton>
@@ -242,7 +259,8 @@ const CompanyList: React.FC = () => {
               fullWidth
               label="Contact Person (SPOC)"
               value={editForm.spoc}
-              onChange={(e) => setEditForm({ ...editForm, spoc: e.target.value })}
+              onChange={(e) => setEditForm({ ...editForm, spoc: e.target.value.replace(/[^a-zA-Z\s]/g, '') })}
+              inputProps={{ maxLength: 50 }}
               sx={{ 
                 mb: 3,
                 '& .MuiOutlinedInput-root': { borderRadius: 2 }
@@ -253,7 +271,17 @@ const CompanyList: React.FC = () => {
               label="Email Address"
               type="email"
               value={editForm.email_id}
-              onChange={(e) => setEditForm({ ...editForm, email_id: e.target.value })}
+              onChange={(e) => {
+                const email = e.target.value;
+                setEditForm({ ...editForm, email_id: email });
+                if (email && !/\S+@\S+\.\S+/.test(email)) {
+                  setEmailError('Please enter a valid email address');
+                } else {
+                  setEmailError('');
+                }
+              }}
+              error={!!emailError}
+              helperText={emailError}
               sx={{
                 '& .MuiOutlinedInput-root': { borderRadius: 2 }
               }}

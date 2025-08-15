@@ -8,7 +8,6 @@ export const companyService = {
       const data = await apiService.get<Company[]>(endpoint);
       return Array.isArray(data) ? data : [];
     } catch (error) {
-      console.error("API fetch failed:", error);
       throw new Error('Failed to fetch companies');
     }
   },
@@ -20,9 +19,7 @@ export const companyService = {
 
   async updateCompany(id: number, updateData: { status?: string; email_id?: string; spoc?: string }): Promise<{ message: string }> {
     let endpoint = process.env.REACT_APP_UPDATE_COMPANY_ENDPOINT || '';
-    console.log ('Updates to: ', updateData);
     endpoint = endpoint.replace('{companyId}', id.toString());
-    console.log(`Final endpoint: ${endpoint}`);
     return apiService.put<{ message: string }>(endpoint, updateData);
   }
 

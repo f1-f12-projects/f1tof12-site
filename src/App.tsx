@@ -3,12 +3,15 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Box, CssBaseline, Container, Typography } from '@mui/material';
 import MaterialUIWrapper from './components/MaterialUIWrapper';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { AlertProvider } from './utils/alert';
+import { ConfirmProvider } from './utils/confirm';
 import Header from './components/Header';
 import MegaBar from './components/MegaBar';
 import Carousel from './components/Carousel';
 import Footer from './components/Footer';
 import RegisterCompany from './pages/company/RegisterCompany';
 import CompanyList from './pages/company/CompanyList';
+import SPOC from './pages/company/SPOC';
 import Login from './pages/Login';
 
 const HomePage: React.FC = () => (
@@ -36,6 +39,7 @@ const AppContent: React.FC = () => {
               <Route path="/" element={<HomePage />} />
               <Route path="/company/register" element={<RegisterCompany />} />
               <Route path="/company/list" element={<CompanyList />} />
+              <Route path="/company/spoc" element={<SPOC />} />
               <Route path="/login" element={<Login />} />
             </Routes>
           </Box>
@@ -50,9 +54,13 @@ const App: React.FC = () => {
   return (
     <MaterialUIWrapper>
       <CssBaseline />
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
+      <ConfirmProvider>
+        <AlertProvider>
+          <AuthProvider>
+            <AppContent />
+          </AuthProvider>
+        </AlertProvider>
+      </ConfirmProvider>
     </MaterialUIWrapper>
   );
 };
