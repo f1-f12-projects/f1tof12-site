@@ -57,8 +57,8 @@ const MegaBar: React.FC = () => {
   };
 
   const companyOptions = [
-    { label: 'Register', path: '/company/register' },
-    { label: 'List', path: '/company/list' },
+    { label: 'Register New Company', path: '/company/register' },
+    { label: 'Show Companies', path: '/company/list' },
     { label: 'SPOC', path: '/company/spoc' }
   ];
 
@@ -97,6 +97,14 @@ const MegaBar: React.FC = () => {
               {item}
             </Button>
           ))}
+          
+          <Button
+            variant="text"
+            onClick={() => navigate('/company/invoices')}
+            sx={mainButtonStyle}
+          >
+            Invoices
+          </Button>
         </Box>
         
         {showCompanyOptions && (

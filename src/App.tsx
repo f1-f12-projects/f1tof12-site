@@ -12,6 +12,7 @@ import Footer from './components/Footer';
 import RegisterCompany from './pages/company/RegisterCompany';
 import CompanyList from './pages/company/CompanyList';
 import SPOC from './pages/company/SPOC';
+import InvoiceList from './pages/company/InvoiceList';
 import Login from './pages/Login';
 
 const HomePage: React.FC = () => (
@@ -40,6 +41,7 @@ const AppContent: React.FC = () => {
               <Route path="/company/register" element={<RegisterCompany />} />
               <Route path="/company/list" element={<CompanyList />} />
               <Route path="/company/spoc" element={<SPOC />} />
+              <Route path="/company/invoices" element={<InvoiceList />} />
               <Route path="/login" element={<Login />} />
             </Routes>
           </Box>
