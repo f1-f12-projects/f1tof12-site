@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Container, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Box, Card, Chip, Button, Dialog, DialogTitle, DialogContent, DialogActions, Stack, MenuItem, Autocomplete, Switch, Grid, Avatar, ToggleButton, ToggleButtonGroup, IconButton } from '@mui/material';
 import { Search, Person, Add, Edit } from '@mui/icons-material';
 import { SPOC as SPOCModel } from '../../models/SPOC';
@@ -8,8 +9,11 @@ import { tableStyles } from '../../styles/tableStyles';
 import { alert } from '../../utils/alert';
 import { showConfirm } from '../../utils/confirm';
 import { spocService } from '../../services/spocService';
+import { useAuth } from '../../context/AuthContext';
 
 const SPOC: React.FC = () => {
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [spocs, setSpocs] = useState<SPOCModel[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -21,6 +25,12 @@ const SPOC: React.FC = () => {
   const [newSpoc, setNewSpoc] = useState({ name: '', email: '', phone: '', company: '', location: '', status: 'active' as 'active' | 'inactive' });
 
   useEffect(() => {
+    if (!isAuthenticated) {
+      alert.error('Please login to access this page');
+      navigate('/');
+      return;
+    }
+    
     const loadData = async () => {
       try {
         // Load companies
@@ -35,7 +45,7 @@ const SPOC: React.FC = () => {
       }
     };
     loadData();
-  }, []);
+  }, [isAuthenticated, navigate]);
 
   const filteredSpocs = useMemo(() => 
     spocs.filter(spoc => {

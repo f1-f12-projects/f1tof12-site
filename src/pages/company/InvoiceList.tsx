@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Container, Paper, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Box, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Button, Chip, Stack, Card, ToggleButton, ToggleButtonGroup, MenuItem, Autocomplete } from '@mui/material';
 import { Edit, Search, Receipt, Add } from '@mui/icons-material';
 import { Invoice } from '../../models/Invoice';
@@ -9,8 +10,11 @@ import { formatDateTimeIST } from '../../utils/dateUtils';
 import { tableStyles } from '../../styles/tableStyles';
 import { alert } from '../../utils/alert';
 import { showConfirm } from '../../utils/confirm';
+import { useAuth } from '../../context/AuthContext';
 
 const InvoiceList: React.FC = () => {
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -27,6 +31,12 @@ const InvoiceList: React.FC = () => {
   });
 
   useEffect(() => {
+    if (!isAuthenticated) {
+      alert.error('Please login to access this page');
+      navigate('/login');
+      return;
+    }
+    
     const loadData = async () => {
       try {
         const [invoiceData, companyData] = await Promise.all([
@@ -40,7 +50,7 @@ const InvoiceList: React.FC = () => {
       }
     };
     loadData();
-  }, []);
+  }, [isAuthenticated, navigate]);
 
   const filteredInvoices = useMemo(() => 
     invoices.filter(invoice => {

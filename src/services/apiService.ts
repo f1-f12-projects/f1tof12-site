@@ -1,9 +1,19 @@
 const BASE_URL = process.env.REACT_APP_BASE_URL;
 
 const apiCall = async <T>(method: string, endpoint: string, body?: any): Promise<T> => {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  
+  // Add Bearer token for all endpoints except login
+  if (!endpoint.includes('/login')) {
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+  }
+  
   const config: RequestInit = {
     method,
-    headers: { 'Content-Type': 'application/json' }
+    headers
   };
   
   if (body && method !== 'GET') {

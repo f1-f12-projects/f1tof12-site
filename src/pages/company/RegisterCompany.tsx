@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Container, Paper, Typography, TextField, Button, Grid } from '@mui/material';
 import { companyService } from '../../services/companyService';
 import { alert } from '../../utils/alert';
+import { useAuth } from '../../context/AuthContext';
 
 const RegisterCompany: React.FC = () => {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [formData, setFormData] = useState({
     companyName: '',
     spocName: '',
@@ -20,8 +22,13 @@ const RegisterCompany: React.FC = () => {
     emailId: ''
   });
   
-
-
+  useEffect(() => {
+    if (!isAuthenticated) {
+      alert.error('Please login to access this page');
+      navigate('/login');
+    }
+  }, [isAuthenticated, navigate]);
+  
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     setErrors({ ...errors, [e.target.name]: '' });

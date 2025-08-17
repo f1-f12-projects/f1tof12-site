@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Container, Paper, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Box, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Button, Switch, Chip, Avatar, Stack, Card, Divider, ToggleButton, ToggleButtonGroup } from '@mui/material';
 import { Edit, Search, Business } from '@mui/icons-material';
 import { Company } from '../../models/Company';
@@ -7,8 +8,11 @@ import { formatDateTimeIST } from '../../utils/dateUtils';
 import { tableStyles } from '../../styles/tableStyles';
 import { alert } from '../../utils/alert';
 import { showConfirm } from '../../utils/confirm';
+import { useAuth } from '../../context/AuthContext';
 
 const CompanyList: React.FC = () => {
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('active');
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -18,6 +22,12 @@ const CompanyList: React.FC = () => {
   const [emailError, setEmailError] = useState('');
 
   useEffect(() => {
+    if (!isAuthenticated) {
+      alert.error('Please login to access this page');
+      navigate('/');
+      return;
+    }
+    
     const loadCompanies = async () => {
       try {
         const data = await companyService.getCompanies();
@@ -27,7 +37,7 @@ const CompanyList: React.FC = () => {
       }
     };
     loadCompanies();
-  }, []);
+  }, [isAuthenticated, navigate]);
 
   const filteredCompanies = useMemo(() => 
     companies.filter(company => {

@@ -3,14 +3,20 @@ import { useNavigate } from 'react-router-dom';
 import { AppBar, Toolbar, Typography, Button, Box } from '@mui/material';
 import { useAuth } from '../context/AuthContext';
 import { alert } from '../utils/alert';
+import { apiService } from '../services/apiService';
 import ThemeToggle from './ThemeToggle';
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
   const { isAuthenticated, logout, username } = useAuth();
   
-  const handleAuthClick = () => {
+  const handleAuthClick = async () => {
     if (isAuthenticated) {
+      try {
+        await apiService.post(process.env.REACT_APP_LOGOUT_ENDPOINT!, {});
+      } catch (error) {
+        // Continue with logout even if API call fails
+      }
       logout();
       navigate('/');
     } else {
@@ -20,12 +26,8 @@ const Header: React.FC = () => {
 
   const handleHealthCheck = async () => {
     try {
-      const response = await fetch(`${process.env.REACT_APP_BASE_URL}/health`);
-      if (response.ok) {
-        alert.success('API is working!');
-      } else {
-        alert.error('API is not responding properly');
-      }
+      await apiService.get('/health');
+      alert.success('API is working!');
     } catch (error) {
       alert.error('API is not reachable');
     }
