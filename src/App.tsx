@@ -13,6 +13,8 @@ import RegisterCompany from './pages/company/RegisterCompany';
 import CompanyList from './pages/company/CompanyList';
 import SPOC from './pages/company/SPOC';
 import InvoiceList from './pages/company/InvoiceList';
+import UserList from './pages/admin/UserList';
+import CreateUser from './pages/admin/CreateUser';
 import Login from './pages/Login';
 
 const HomePage: React.FC = () => (
@@ -42,6 +44,8 @@ const AppContent: React.FC = () => {
               <Route path="/company/list" element={<CompanyList />} />
               <Route path="/company/spoc" element={<SPOC />} />
               <Route path="/company/invoices" element={<InvoiceList />} />
+              <Route path="/admin/users" element={<UserList />} />
+              <Route path="/admin/users/create" element={<CreateUser />} />
               <Route path="/login" element={<Login />} />
             </Routes>
           </Box>

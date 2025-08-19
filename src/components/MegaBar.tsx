@@ -5,8 +5,10 @@ import { KeyboardArrowDown } from '@mui/icons-material';
 
 const MegaBar: React.FC = () => {
   const [showCompanyOptions, setShowCompanyOptions] = useState(false);
+  const [showAdminOptions, setShowAdminOptions] = useState(false);
   const navigate = useNavigate();
   let timeoutId: NodeJS.Timeout;
+  let adminTimeoutId: NodeJS.Timeout;
 
   const mainButtonStyle = {
     color: 'text.primary',
@@ -62,6 +64,11 @@ const MegaBar: React.FC = () => {
     { label: 'SPOC', path: '/company/spoc' }
   ];
 
+  const adminOptions = [
+    { label: 'Manage Users', path: '/admin/users' },
+    { label: 'Create User', path: '/admin/users/create' }
+  ];
+
   const handleMouseEnter = () => {
     clearTimeout(timeoutId);
     setShowCompanyOptions(true);
@@ -69,6 +76,15 @@ const MegaBar: React.FC = () => {
 
   const handleMouseLeave = () => {
     timeoutId = setTimeout(() => setShowCompanyOptions(false), 200);
+  };
+
+  const handleAdminMouseEnter = () => {
+    clearTimeout(adminTimeoutId);
+    setShowAdminOptions(true);
+  };
+
+  const handleAdminMouseLeave = () => {
+    adminTimeoutId = setTimeout(() => setShowAdminOptions(false), 200);
   };
 
   return (
@@ -105,6 +121,19 @@ const MegaBar: React.FC = () => {
           >
             Invoices
           </Button>
+          
+          <Button
+            variant="text"
+            sx={mainButtonStyle}
+            onMouseEnter={handleAdminMouseEnter}
+            onMouseLeave={handleAdminMouseLeave}
+            endIcon={<KeyboardArrowDown sx={{ 
+              transform: showAdminOptions ? 'rotate(180deg)' : 'rotate(0deg)',
+              transition: 'transform 0.2s ease'
+            }} />}
+          >
+            Admin
+          </Button>
         </Box>
         
         {showCompanyOptions && (
@@ -117,6 +146,30 @@ const MegaBar: React.FC = () => {
             <Container maxWidth="lg">
               <Box sx={{ display: 'flex', justifyContent: 'center', gap: 8, py: 3 }}>
                 {companyOptions.map(({ label, path }) => (
+                  <Button
+                    key={label}
+                    variant="text"
+                    onClick={() => navigate(path)}
+                    sx={dropdownButtonStyle}
+                  >
+                    {label}
+                  </Button>
+                ))}
+              </Box>
+            </Container>
+          </Paper>
+        )}
+        
+        {showAdminOptions && (
+          <Paper
+            elevation={8}
+            sx={dropdownPaperStyle}
+            onMouseEnter={handleAdminMouseEnter}
+            onMouseLeave={handleAdminMouseLeave}
+          >
+            <Container maxWidth="lg">
+              <Box sx={{ display: 'flex', justifyContent: 'center', gap: 8, py: 3 }}>
+                {adminOptions.map(({ label, path }) => (
                   <Button
                     key={label}
                     variant="text"

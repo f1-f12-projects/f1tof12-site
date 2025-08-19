@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Container, Paper, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Box, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Button, Switch, Chip, Avatar, Stack, Card, Divider, ToggleButton, ToggleButtonGroup } from '@mui/material';
+import { Container, Paper, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Box, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Button, Switch, Chip, Avatar, Stack, Card, Divider, ToggleButton, ToggleButtonGroup, CircularProgress } from '@mui/material';
 import { Edit, Search, Business } from '@mui/icons-material';
 import { Company } from '../../models/Company';
 import { companyService } from '../../services/companyService';
@@ -16,6 +16,7 @@ const CompanyList: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('active');
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [loading, setLoading] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editCompany, setEditCompany] = useState<Company | null>(null);
   const [editForm, setEditForm] = useState({ spoc: '', email_id: '' });
@@ -29,11 +30,14 @@ const CompanyList: React.FC = () => {
     }
     
     const loadCompanies = async () => {
+      setLoading(true);
       try {
         const data = await companyService.getCompanies();
         setCompanies(data);
       } catch (error) {
         alert.error('Failed to load companies');
+      } finally {
+        setLoading(false);
       }
     };
     loadCompanies();
@@ -159,7 +163,11 @@ const CompanyList: React.FC = () => {
             </ToggleButtonGroup>
           </Stack>
         
-          {filteredCompanies.length === 0 ? (
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+              <CircularProgress />
+            </Box>
+          ) : filteredCompanies.length === 0 ? (
             <Box sx={tableStyles.emptyState}>
               <Business sx={tableStyles.emptyIcon} />
               <Typography variant="h6" color="text.secondary" gutterBottom>

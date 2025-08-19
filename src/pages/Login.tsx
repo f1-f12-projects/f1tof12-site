@@ -4,6 +4,7 @@ import { Box, Container, Paper, Typography, TextField, Button, IconButton, Input
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 import { apiService } from '../services/apiService';
+import { alert } from '../utils/alert';
 
 const Login: React.FC = () => {
   const { login } = useAuth();
@@ -20,6 +21,12 @@ const Login: React.FC = () => {
   });
   
   const [showPassword, setShowPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordChangeRequired, setPasswordChangeRequired] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -54,9 +61,39 @@ const Login: React.FC = () => {
         } else {
           setErrors({ username: '', password: 'Invalid credentials' });
         }
-      } catch (error) {
-        setErrors({ username: '', password: 'Login failed' });
+      } catch (error: any) {
+        console.error('Login error:', error);
+        console.log('Error data:', error.data);
+        if (error.status === 400 && error.data?.detail?.includes('Password change required')) {
+          setPasswordChangeRequired(true);
+          setErrors({ username: '', password: '' });
+        } else {
+          setErrors({ username: '', password: 'Login failed' });
+        }
       }
+    }
+  };
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) {
+      setPasswordError('Passwords do not match');
+      return;
+    }
+    setPasswordError('');
+    try {
+      await apiService.post(process.env.REACT_APP_USER_CHANGE_PASSWORD_ENDPOINT!, {
+        username: formData.username,
+        temporary_password: formData.password,
+        new_password: newPassword
+      });
+      alert.success('Password changed successfully. Please login!');
+      setPasswordChangeRequired(false);
+      setFormData({ username: '', password: '' });
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (error: any) {
+      alert.error(error.data?.detail || 'Password change failed');
     }
   };
 
@@ -64,9 +101,66 @@ const Login: React.FC = () => {
     <Container maxWidth="sm" sx={{ py: 8 }}>
       <Paper elevation={3} sx={{ p: 4 }}>
         <Typography variant="h4" component="h1" gutterBottom align="center">
-          Login
+          {passwordChangeRequired ? 'Change Password' : 'Login'}
         </Typography>
         
+        {passwordChangeRequired ? (
+          <Box component="form" onSubmit={handlePasswordChange} noValidate sx={{ mt: 3 }}>
+            <TextField
+              fullWidth
+              label="New Password"
+              type={showNewPassword ? 'text' : 'password'}
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              required
+              sx={{ mb: 2 }}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      edge="end"
+                    >
+                      {showNewPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                )
+              }}
+            />
+            <TextField
+              fullWidth
+              label="Confirm Password"
+              type={showConfirmPassword ? 'text' : 'password'}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+              error={!!passwordError}
+              helperText={passwordError}
+              sx={{ mb: 3 }}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      edge="end"
+                    >
+                      {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                )
+              }}
+            />
+            <Button
+              type="submit"
+              variant="contained"
+              size="large"
+              fullWidth
+              sx={{ mt: 2 }}
+            >
+              Change Password
+            </Button>
+          </Box>
+        ) : (
         <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 3 }}>
           <TextField
             fullWidth
@@ -113,6 +207,7 @@ const Login: React.FC = () => {
             Login
           </Button>
         </Box>
+        )}
       </Paper>
     </Container>
   );

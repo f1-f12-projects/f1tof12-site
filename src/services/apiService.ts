@@ -24,7 +24,10 @@ const apiCall = async <T>(method: string, endpoint: string, body?: any): Promise
   
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(`HTTP ${response.status}: ${errorData.message || response.statusText}`);
+    const error = new Error(`HTTP ${response.status}: ${errorData.detail || errorData.message || response.statusText}`);
+    (error as any).status = response.status;
+    (error as any).data = errorData;
+    throw error;
   }
   
   return response.json();

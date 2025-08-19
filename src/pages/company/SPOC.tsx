@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Container, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Box, Card, Chip, Button, Dialog, DialogTitle, DialogContent, DialogActions, Stack, MenuItem, Autocomplete, Switch, Grid, Avatar, ToggleButton, ToggleButtonGroup, IconButton } from '@mui/material';
+import { Container, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Box, Card, Chip, Button, Dialog, DialogTitle, DialogContent, DialogActions, Stack, MenuItem, Autocomplete, Switch, Grid, Avatar, ToggleButton, ToggleButtonGroup, IconButton, CircularProgress } from '@mui/material';
 import { Search, Person, Add, Edit } from '@mui/icons-material';
 import { SPOC as SPOCModel } from '../../models/SPOC';
 import { Company } from '../../models/Company';
@@ -17,6 +17,7 @@ const SPOC: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [spocs, setSpocs] = useState<SPOCModel[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [loading, setLoading] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState('');
 
@@ -32,6 +33,8 @@ const SPOC: React.FC = () => {
     }
     
     const loadData = async () => {
+      setLoading(true);
+      console.log('Loading started');
       try {
         // Load companies
         const companyData = await companyService.getCompanies();
@@ -42,6 +45,9 @@ const SPOC: React.FC = () => {
         setSpocs(spocData);
       } catch (error) {
         alert.error('Failed to load SPOC data');
+      } finally {
+        setLoading(false);
+        console.log('Loading finished');
       }
     };
     loadData();
@@ -175,7 +181,18 @@ const SPOC: React.FC = () => {
             </Button>
           </Stack>
         
-          {filteredSpocs.length === 0 ? (
+          {loading ? (
+            <Box sx={{ 
+              display: 'flex', 
+              justifyContent: 'center', 
+              alignItems: 'center', 
+              minHeight: 200,
+              backgroundColor: 'rgba(0,0,0,0.05)',
+              borderRadius: 2
+            }}>
+              <CircularProgress size={60} thickness={4} />
+            </Box>
+          ) : filteredSpocs.length === 0 ? (
             <Box sx={tableStyles.emptyState}>
               <Person sx={tableStyles.emptyIcon} />
               <Typography variant="h6" color="text.secondary" gutterBottom>
