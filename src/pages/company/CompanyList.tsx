@@ -9,10 +9,12 @@ import { tableStyles } from '../../styles/tableStyles';
 import { alert } from '../../utils/alert';
 import { showConfirm } from '../../utils/confirm';
 import { useAuth } from '../../context/AuthContext';
+import PageHeader from '../../components/PageHeader';
+import { handleApiResponse } from '../../utils/apiHandler';
 
 const CompanyList: React.FC = () => {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, checkAuthentication } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('active');
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -23,25 +25,28 @@ const CompanyList: React.FC = () => {
   const [emailError, setEmailError] = useState('');
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      alert.error('Please login to access this page');
-      navigate('/');
-      return;
-    }
-    
-    const loadCompanies = async () => {
-      setLoading(true);
-      try {
-        const data = await companyService.getCompanies();
-        setCompanies(data);
-      } catch (error) {
-        alert.error('Failed to load companies');
-      } finally {
-        setLoading(false);
+    const initializeAuth = async () => {
+      const authenticated = await checkAuthentication();
+      if (!authenticated) {
+        alert.error('Please login to access this page');
+        navigate('/');
+        return;
       }
+      
+      const loadCompanies = async () => {
+        setLoading(true);
+        await handleApiResponse(
+          () => companyService.getCompanies(),
+          (data) => setCompanies(Array.isArray(data) ? data : []),
+          () => alert.error('Failed to load companies')
+        );
+        setLoading(false);
+      };
+      loadCompanies();
     };
-    loadCompanies();
-  }, [isAuthenticated, navigate]);
+    
+    initializeAuth();
+  }, [checkAuthentication, navigate]);
 
   const filteredCompanies = useMemo(() => 
     companies.filter(company => {
@@ -71,15 +76,14 @@ const CompanyList: React.FC = () => {
     
     if (!confirmed) return;
     
-    try {
-      await companyService.updateCompany(id, { status: newStatus });
-      setCompanies(prev => prev.map(c => 
-        c.id === id ? { ...c, status: newStatus } : c
-      ));
-      alert.success(`Company status updated to ${newStatus}`);
-    } catch (error) {
-      alert.error('Failed to update company status');
-    }
+    await handleApiResponse(
+      () => companyService.updateCompany(id, { status: newStatus }),
+      () => {
+        setCompanies(prev => prev.map(c => 
+          c.id === id ? { ...c, status: newStatus } : c
+        ));
+      }
+    );
   };
 
   const handleSave = async () => {
@@ -100,15 +104,14 @@ const CompanyList: React.FC = () => {
       }
       
       if (Object.keys(updateData).length > 0) {
-        try {
-          await companyService.updateCompany(editCompany.id, updateData);
-          setCompanies(prev => prev.map(c => 
-            c.id === editCompany.id ? { ...c, ...updateData } : c
-          ));
-          alert.success('Company details updated successfully');
-        } catch (error) {
-          alert.error('Failed to update company details');
-        }
+        await handleApiResponse(
+          () => companyService.updateCompany(editCompany.id, updateData),
+          () => {
+            setCompanies(prev => prev.map(c => 
+              c.id === editCompany.id ? { ...c, ...updateData } : c
+            ));
+          }
+        );
       }
     }
     setEditOpen(false);
@@ -117,16 +120,7 @@ const CompanyList: React.FC = () => {
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Card elevation={0} sx={{ borderRadius: 4, border: '1px solid', borderColor: 'divider' }}>
-        <Box sx={{ p: 4, background: (theme) => theme.palette.mode === 'dark' 
-          ? 'linear-gradient(135deg, #424242 0%, #616161 100%)' 
-          : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', borderRadius: '16px 16px 0 0' }}>
-          <Typography variant="h4" component="h1" sx={{ color: 'white', fontWeight: 700, mb: 1 }}>
-            Company Directory
-          </Typography>
-          <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.8)' }}>
-            Manage and monitor registered companies
-          </Typography>
-        </Box>
+        <PageHeader title="Company Directory" subtitle="Manage and monitor registered companies" />
         
         <Box sx={{ p: 4 }}>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 4 }}>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Container, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Box, Card, Chip, Button, Dialog, DialogTitle, DialogContent, DialogActions, Stack, MenuItem, Autocomplete, Switch, Grid, Avatar, ToggleButton, ToggleButtonGroup, IconButton, CircularProgress } from '@mui/material';
+import { Container, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Box, Card, Chip, Button, Dialog, DialogTitle, DialogContent, DialogActions, Stack, MenuItem, Autocomplete, Switch, Grid, Avatar, ToggleButton, ToggleButtonGroup, IconButton, CircularProgress, FormControl, InputLabel, Select } from '@mui/material';
 import { Search, Person, Add, Edit } from '@mui/icons-material';
 import { SPOC as SPOCModel } from '../../models/SPOC';
 import { Company } from '../../models/Company';
@@ -10,6 +10,8 @@ import { alert } from '../../utils/alert';
 import { showConfirm } from '../../utils/confirm';
 import { spocService } from '../../services/spocService';
 import { useAuth } from '../../context/AuthContext';
+import PageHeader from '../../components/PageHeader';
+import { handleApiResponse } from '../../utils/apiHandler';
 
 const SPOC: React.FC = () => {
   const navigate = useNavigate();
@@ -23,6 +25,7 @@ const SPOC: React.FC = () => {
 
   const [editOpen, setEditOpen] = useState(false);
   const [editSpoc, setEditSpoc] = useState<SPOCModel | null>(null);
+  const [originalSpoc, setOriginalSpoc] = useState<SPOCModel | null>(null);
   const [newSpoc, setNewSpoc] = useState({ name: '', email: '', phone: '', company: '', location: '', status: 'active' as 'active' | 'inactive' });
 
   useEffect(() => {
@@ -34,21 +37,19 @@ const SPOC: React.FC = () => {
     
     const loadData = async () => {
       setLoading(true);
-      console.log('Loading started');
-      try {
-        // Load companies
-        const companyData = await companyService.getCompanies();
-        setCompanies(companyData);
-        
-        // Load SPOCs
-        const spocData = await spocService.getSPOCs();
-        setSpocs(spocData);
-      } catch (error) {
-        alert.error('Failed to load SPOC data');
-      } finally {
-        setLoading(false);
-        console.log('Loading finished');
-      }
+      await Promise.all([
+        handleApiResponse(
+          () => companyService.getCompanies(),
+          (data) => setCompanies(Array.isArray(data) ? data : []),
+          () => alert.error('Failed to load companies')
+        ),
+        handleApiResponse(
+          () => spocService.getSPOCs(),
+          (data) => setSpocs(Array.isArray(data) ? data : []),
+          () => alert.error('Failed to load SPOCs')
+        )
+      ]);
+      setLoading(false);
     };
     loadData();
   }, [isAuthenticated, navigate]);
@@ -63,95 +64,98 @@ const SPOC: React.FC = () => {
       return matchesSearch && matchesCompany;
     }), [spocs, searchTerm, selectedCompany, companies]);
 
-  const handleAddSpoc = useCallback(() => {
+  const handleAddSpoc = useCallback(async () => {
     const companyId = companies.find(c => c.name === newSpoc.company)?.id || 0;
     if (!newSpoc.name || !newSpoc.email || !newSpoc.phone || !companyId) {
       alert.error('Please fill all fields');
       return;
     }
 
-    spocService.createSPOC({
-      name: newSpoc.name,
-      email_id: newSpoc.email,
-      phone: newSpoc.phone,
-      company_id: companyId,
-      location: newSpoc.location,
-      status: newSpoc.status
-    }).catch(() => {
-      alert.error('Failed to add SPOC');
-    });
-    
-    alert.success('SPOC added successfully');
-
-    // fetch updated SPOCs
-    spocService.getSPOCs().then(data => {
-      setSpocs(data);
-    }).catch(() => {
-      alert.error('Failed to refresh SPOC list');
-    });
-    
-    setNewSpoc({ name: '', email: '', phone: '', company: '', location: '', status: 'active' });
-    setAddOpen(false);
-  }, [spocs, newSpoc, companies]);
+    await handleApiResponse(
+      () => spocService.createSPOC({
+        name: newSpoc.name,
+        email_id: newSpoc.email,
+        phone: newSpoc.phone,
+        company_id: companyId,
+        location: newSpoc.location,
+        status: newSpoc.status
+      }),
+      async () => {
+        setNewSpoc({ name: '', email: '', phone: '', company: '', location: '', status: 'active' });
+        setAddOpen(false);
+        // Refresh SPOC list
+        await handleApiResponse(
+          () => spocService.getSPOCs(),
+          (data) => setSpocs(Array.isArray(data) ? data : [])
+        );
+      }
+    );
+  }, [newSpoc, companies]);
 
   const handleEdit = useCallback((spoc: SPOCModel) => {
     setEditSpoc(spoc);
+    setOriginalSpoc(spoc);
     setEditOpen(true);
   }, []);
 
-  const handleEditSave = useCallback(() => {
-    if (editSpoc) {
-      setSpocs(prev => prev.map(s => s.id === editSpoc.id ? editSpoc : s));
-      setEditOpen(false);
-      setEditSpoc(null);
+  const handleEditSave = useCallback(async () => {
+    if (editSpoc && originalSpoc) {
+      const confirmed = await showConfirm('Are you sure you want to save these changes?', 'Save SPOC Changes');
+      if (confirmed) {
+        const updateData: Partial<Omit<SPOCModel, 'id'>> = {};
+        
+        if (editSpoc.name !== originalSpoc.name) updateData.name = editSpoc.name;
+        if (editSpoc.email_id !== originalSpoc.email_id) updateData.email_id = editSpoc.email_id;
+        if (editSpoc.phone !== originalSpoc.phone) updateData.phone = editSpoc.phone;
+        if (editSpoc.location !== originalSpoc.location) updateData.location = editSpoc.location;
+        if (editSpoc.status !== originalSpoc.status) updateData.status = editSpoc.status;
+        
+        if (Object.keys(updateData).length > 0) {
+          await handleApiResponse(
+            () => spocService.updateSPOC(editSpoc.id, updateData),
+            async () => {
+              setEditOpen(false);
+              setEditSpoc(null);
+              setOriginalSpoc(null);
+              // Refresh SPOC list
+              await handleApiResponse(
+                () => spocService.getSPOCs(),
+                (data) => setSpocs(Array.isArray(data) ? data : [])
+              );
+            }
+          );
+        } else {
+          setEditOpen(false);
+          setEditSpoc(null);
+          setOriginalSpoc(null);
+        }
+      }
     }
-  }, [editSpoc]);
+  }, [editSpoc, originalSpoc]);
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Card elevation={0} sx={{ borderRadius: 4, border: '1px solid', borderColor: 'divider' }}>
-        <Box sx={{ p: 4, background: (theme) => theme.palette.mode === 'dark' 
-          ? 'linear-gradient(135deg, #424242 0%, #616161 100%)' 
-          : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', borderRadius: '16px 16px 0 0' }}>
-          <Typography variant="h4" component="h1" sx={{ color: 'white', fontWeight: 700, mb: 1 }}>
-            SPOC Directory
-          </Typography>
-          <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.8)' }}>
-            Single Point of Contact
-          </Typography>
-        </Box>
+        <PageHeader title="SPOC Directory" subtitle="Single Point of Contact" />
         
         <Box sx={{ p: 4 }}>
-          <Box sx={{ mb: 4 }}>
-            <Typography variant="h6" sx={{ mb: 3, color: 'text.primary', fontWeight: 600 }}>Select Company</Typography>
-            <Grid container spacing={2}>
-              {[{ id: 0, name: 'All Companies' }, ...companies].map((company) => {
-                const isSelected = company.id === 0 ? selectedCompany === '' : selectedCompany === company.name;
-                return (
-                  <Grid item xs={12} sm={6} md={3} key={company.id}>
-                    <Card
-                      onClick={() => setSelectedCompany(company.id === 0 ? '' : company.name)}
-                      sx={{
-                        p: 3, cursor: 'pointer', borderRadius: 3, border: '2px solid',
-                        borderColor: isSelected ? 'primary.main' : 'divider',
-                        bgcolor: isSelected ? 'action.selected' : 'background.paper',
-                        transition: 'all 0.2s ease',
-                        '&:hover': { borderColor: 'primary.main', transform: 'translateY(-2px)', boxShadow: 3 }
-                      }}
-                    >
-                      <Stack direction="row" alignItems="center" spacing={2}>
-                        <Avatar sx={{ bgcolor: company.id === 0 ? 'primary.main' : 'secondary.main', width: 40, height: 40 }}>
-                          {company.name.charAt(0).toUpperCase()}
-                        </Avatar>
-                        <Typography variant="subtitle1" fontWeight={600} color={isSelected ? 'primary.main' : 'text.primary'}>
-                          {company.name}
-                        </Typography>
-                      </Stack>
-                    </Card>
-                  </Grid>
-                );
-              })}
-            </Grid>
+          <Box sx={{ mb: 3 }}>
+            <FormControl sx={{ minWidth: 200, mr: 2 }}>
+              <InputLabel>Company</InputLabel>
+              <Select
+                value={selectedCompany}
+                onChange={(e) => setSelectedCompany(e.target.value)}
+                label="Company"
+                size="small"
+              >
+                <MenuItem value="">All Companies</MenuItem>
+                {companies.map((company) => (
+                  <MenuItem key={company.id} value={company.name}>
+                    {company.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
           </Box>
           
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 4 }}>
@@ -300,8 +304,9 @@ const SPOC: React.FC = () => {
               <Autocomplete
                 fullWidth
                 options={companies.map(c => c.name)}
-                value={newSpoc.company}
+                value={newSpoc.company || null}
                 onChange={(_, value) => setNewSpoc({ ...newSpoc, company: value || '' })}
+                isOptionEqualToValue={(option, value) => option === value}
                 renderInput={(params) => <TextField {...params} label="Company" />}
               />
               <TextField select fullWidth label="Status" value={newSpoc.status}

@@ -4,6 +4,7 @@ import { Box, Container, Paper, Typography, TextField, Button, Grid } from '@mui
 import { companyService } from '../../services/companyService';
 import { alert } from '../../utils/alert';
 import { useAuth } from '../../context/AuthContext';
+import { handleApiResponse } from '../../utils/apiHandler';
 
 const RegisterCompany: React.FC = () => {
   const navigate = useNavigate();
@@ -51,35 +52,25 @@ const RegisterCompany: React.FC = () => {
   };
 
   const registerCompany = async () => {
-    try {
-      const companyData = {
-        name: formData.companyName,
-        spoc: formData.spocName,
-        email_id: formData.emailId,
-        status: 'active' as const
-      };
-      await companyService.registerCompany(companyData);
-      alert.success('Company registered successfully!');
-    } catch (error: any) {
-      console.error('Error registering company:', error);
-      if (error.message?.includes('409')) {
-        alert.error('Company already exists with this name or email.');
-      } else {
-        alert.error('Failed to register company. Please try again.');
-        throw error;
+    const companyData = {
+      name: formData.companyName,
+      spoc: formData.spocName,
+      email_id: formData.emailId,
+      status: 'active' as const
+    };
+    
+    return await handleApiResponse(
+      () => companyService.registerCompany(companyData),
+      () => {
+        setTimeout(() => navigate('/'), 2000);
       }
-    }
+    );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
-      try {
-        await registerCompany();
-        setTimeout(() => navigate('/'), 2000);
-      } catch (error) {
-        // Error already handled in registerCompany
-      }
+      await registerCompany();
     }
   };
 

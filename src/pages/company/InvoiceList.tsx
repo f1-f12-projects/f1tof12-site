@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Container, Paper, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Box, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Button, Chip, Stack, Card, ToggleButton, ToggleButtonGroup, MenuItem, Autocomplete } from '@mui/material';
+import { Container, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Box, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Button, Chip, Stack, Card, ToggleButton, ToggleButtonGroup, MenuItem, Autocomplete } from '@mui/material';
 import { Edit, Search, Receipt, Add } from '@mui/icons-material';
 import { Invoice } from '../../models/Invoice';
 import { Company } from '../../models/Company';
@@ -11,6 +11,7 @@ import { tableStyles } from '../../styles/tableStyles';
 import { alert } from '../../utils/alert';
 import { showConfirm } from '../../utils/confirm';
 import { useAuth } from '../../context/AuthContext';
+import { handleApiResponse } from '../../utils/apiHandler';
 
 const InvoiceList: React.FC = () => {
   const navigate = useNavigate();
@@ -25,8 +26,9 @@ const InvoiceList: React.FC = () => {
   const [newInvoice, setNewInvoice] = useState({
     invoice_number: '',
     company_name: '',
+    po_number: '',
     amount: '',
-    issue_date: '',
+    raised_date: '',
     due_date: ''
   });
 
@@ -38,16 +40,18 @@ const InvoiceList: React.FC = () => {
     }
     
     const loadData = async () => {
-      try {
-        const [invoiceData, companyData] = await Promise.all([
-          invoiceService.getInvoices(),
-          companyService.getCompanies()
-        ]);
-        setInvoices(invoiceData);
-        setCompanies(companyData.filter(c => c.status === 'active'));
-      } catch (error) {
-        alert.error('Failed to load data');
-      }
+      await Promise.all([
+        handleApiResponse(
+          () => invoiceService.getInvoices(),
+          (data) => setInvoices(Array.isArray(data) ? data : []),
+          () => alert.error('Failed to load invoices')
+        ),
+        handleApiResponse(
+          () => companyService.getCompanies(),
+          (data) => setCompanies((Array.isArray(data) ? data : []).filter(c => c.status === 'active')),
+          () => alert.error('Failed to load companies')
+        )
+      ]);
     };
     loadData();
   }, [isAuthenticated, navigate]);
@@ -72,15 +76,14 @@ const InvoiceList: React.FC = () => {
     
     if (!confirmed) return;
     
-    try {
-      await invoiceService.updateInvoiceStatus(id, newStatus);
-      setInvoices(prev => prev.map(i => 
-        i.id === id ? { ...i, status: newStatus as Invoice['status'] } : i
-      ));
-      alert.success(`Invoice status updated to ${newStatus}`);
-    } catch (error) {
-      alert.error('Failed to update invoice status');
-    }
+    await handleApiResponse(
+      () => invoiceService.updateInvoiceStatus(id, newStatus),
+      () => {
+        setInvoices(prev => prev.map(i => 
+          i.id === id ? { ...i, status: newStatus as Invoice['status'] } : i
+        ));
+      }
+    );
   };
 
   const handleAddInvoice = async () => {
@@ -89,19 +92,39 @@ const InvoiceList: React.FC = () => {
       return;
     }
 
-    try {
-      const invoice = await invoiceService.createInvoice({
-        ...newInvoice,
-        amount: parseFloat(newInvoice.amount),
-        status: 'pending'
-      });
-      setInvoices(prev => [...prev, invoice]);
-      setNewInvoice({ invoice_number: '', company_name: '', amount: '', issue_date: '', due_date: '' });
-      setAddOpen(false);
-      alert.success('Invoice created successfully');
-    } catch (error) {
-      alert.error('Failed to create invoice');
+    const selectedCompany = companies.find(c => c.name === newInvoice.company_name);
+    if (!selectedCompany) {
+      alert.error('Please select a valid company');
+      return;
     }
+
+    const payload: any = {
+      invoice_number: newInvoice.invoice_number,
+      po_number: newInvoice.po_number,
+      company_id: selectedCompany.id,
+      amount: parseFloat(newInvoice.amount),
+      status: 'pending'
+    };
+
+    if (newInvoice.raised_date) {
+      payload.raised_date = newInvoice.raised_date;
+    }
+    if (newInvoice.due_date) {
+      payload.due_date = newInvoice.due_date;
+    }
+
+    await handleApiResponse(
+      () => invoiceService.createInvoice(payload),
+      (invoice) => {
+        setInvoices(prev => [...prev, invoice]);
+        setNewInvoice({ invoice_number: '', company_name: '', po_number: '', amount: '', raised_date: '', due_date: '' });
+        setAddOpen(false);
+      }
+    );
+  };
+
+  const handleWheel = (event: React.WheelEvent) => {
+    event.preventDefault();
   };
 
   const getStatusColor = (status: string) => {
@@ -183,9 +206,10 @@ const InvoiceList: React.FC = () => {
                 <TableHead>
                   <TableRow sx={tableStyles.headerRow}>
                     <TableCell sx={tableStyles.headerCell}>Invoice #</TableCell>
+                    <TableCell sx={tableStyles.headerCell}>PO Number</TableCell>
                     <TableCell sx={tableStyles.headerCell}>Company</TableCell>
                     <TableCell sx={tableStyles.headerCell}>Amount</TableCell>
-                    <TableCell sx={tableStyles.headerCell}>Issue Date</TableCell>
+                    <TableCell sx={tableStyles.headerCell}>Raised Date</TableCell>
                     <TableCell sx={tableStyles.headerCell}>Due Date</TableCell>
                     <TableCell sx={tableStyles.headerCell}>Status</TableCell>
                     <TableCell sx={tableStyles.headerCell}>Actions</TableCell>
@@ -203,12 +227,13 @@ const InvoiceList: React.FC = () => {
                         </Typography>
                       </TableCell>
                       <TableCell sx={tableStyles.bodyCell}>
-                        <Typography variant="body2">
-                          {invoice.company_name}
-                        </Typography>
+                        {invoice.po_number || '-'}
                       </TableCell>
                       <TableCell sx={tableStyles.bodyCell}>
-                        <Typography variant="body2" fontWeight={500}>
+                        {invoice.company_name}
+                      </TableCell>
+                      <TableCell sx={tableStyles.bodyCell}>
+                        <Typography variant="body2" fontWeight={500} noWrap>
                           ${invoice.amount.toLocaleString()}
                         </Typography>
                       </TableCell>
@@ -260,8 +285,16 @@ const InvoiceList: React.FC = () => {
               onChange={(e) => setNewInvoice({ ...newInvoice, invoice_number: e.target.value })}
               sx={{ mb: 2, mt: 1 }}
             />
+            <TextField
+              fullWidth
+              label="PO Number"
+              value={newInvoice.po_number}
+              onChange={(e) => setNewInvoice({ ...newInvoice, po_number: e.target.value })}
+              sx={{ mb: 2 }}
+            />
             <Autocomplete
               fullWidth
+              freeSolo
               options={companies.map(c => c.name)}
               value={newInvoice.company_name}
               onChange={(_, value) => setNewInvoice({ ...newInvoice, company_name: value || '' })}
@@ -275,14 +308,15 @@ const InvoiceList: React.FC = () => {
               type="number"
               value={newInvoice.amount}
               onChange={(e) => setNewInvoice({ ...newInvoice, amount: e.target.value })}
+              onWheel={handleWheel}
               sx={{ mb: 2 }}
             />
             <TextField
               fullWidth
-              label="Issue Date"
+              label="Raised Date"
               type="date"
-              value={newInvoice.issue_date}
-              onChange={(e) => setNewInvoice({ ...newInvoice, issue_date: e.target.value })}
+              value={newInvoice.raised_date}
+              onChange={(e) => setNewInvoice({ ...newInvoice, raised_date: e.target.value })}
               InputLabelProps={{ shrink: true }}
               sx={{ mb: 2 }}
             />

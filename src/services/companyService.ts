@@ -1,26 +1,22 @@
 import { Company } from '../models/Company';
+import { ApiResponse } from '../models/ApiResponse';
 import { apiService } from './apiService';
 
 export const companyService = {
-  async getCompanies(): Promise<Company[]> {
-    try {
-      const endpoint = process.env.REACT_APP_COMPANY_LIST_ENDPOINT || '';
-      const data = await apiService.get<Company[]>(endpoint);
-      return Array.isArray(data) ? data : [];
-    } catch (error) {
-      throw new Error('Failed to fetch companies');
-    }
+  async getCompanies(): Promise<ApiResponse<Company[]>> {
+    const endpoint = process.env.REACT_APP_COMPANY_LIST_ENDPOINT || '';
+    return apiService.get<ApiResponse<Company[]>>(endpoint);
   },
 
-  async registerCompany(company: Omit<Company, 'id'>): Promise<Company> {
+  async registerCompany(company: Omit<Company, 'id'>): Promise<ApiResponse<Company>> {
     const endpoint = process.env.REACT_APP_REGISTER_ENDPOINT || '';
-    return apiService.post<Company>(endpoint, company);
+    return apiService.post<ApiResponse<Company>>(endpoint, company);
   },
 
-  async updateCompany(id: number, updateData: { status?: string; email_id?: string; spoc?: string }): Promise<{ message: string }> {
+  async updateCompany(id: number, updateData: { status?: string; email_id?: string; spoc?: string }): Promise<ApiResponse> {
     let endpoint = process.env.REACT_APP_UPDATE_COMPANY_ENDPOINT || '';
     endpoint = endpoint.replace('{companyId}', id.toString());
-    return apiService.put<{ message: string }>(endpoint, updateData);
+    return apiService.put<ApiResponse>(endpoint, updateData);
   }
 
 };

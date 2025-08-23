@@ -1,6 +1,7 @@
 export interface Invoice {
   id: number;
   invoice_number: string;
+  po_number: string;
   company_name: string;
   amount: number;
   status: 'pending' | 'paid' | 'overdue' | 'cancelled';
