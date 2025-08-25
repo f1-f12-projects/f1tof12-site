@@ -15,6 +15,7 @@ const UserList: React.FC = () => {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [editForm, setEditForm] = useState({ given_name: '', family_name: '', email: '', phone_number: '' });
+  const [saving, setSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'enabled' | 'disabled' | 'all'>('enabled');
   const { isAuthenticated } = useAuth();
@@ -65,6 +66,7 @@ const UserList: React.FC = () => {
     setEditModalOpen(false);
     setEditingUser(null);
     setEditForm({ given_name: '', family_name: '', email: '', phone_number: '' });
+    setSaving(false);
   };
 
   const handleFormChange = (field: keyof typeof editForm) => (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -75,6 +77,7 @@ const UserList: React.FC = () => {
     if (!editingUser) return;
     if (!(await showConfirm('Are you sure you want to save these changes?'))) return;
     
+    setSaving(true);
     const updates: Partial<typeof editForm> = {};
     if (editForm.given_name !== (editingUser.given_name || '')) updates.given_name = editForm.given_name;
     if (editForm.family_name !== (editingUser.family_name || '')) updates.family_name = editForm.family_name;
@@ -88,6 +91,7 @@ const UserList: React.FC = () => {
         closeEditModal();
       }
     );
+    setSaving(false);
   };
 
   const filteredUsers = useMemo(() => {
@@ -217,8 +221,10 @@ const UserList: React.FC = () => {
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={closeEditModal}>Cancel</Button>
-          <Button onClick={handleEditSubmit} variant="contained">Save</Button>
+          <Button onClick={closeEditModal} disabled={saving}>Cancel</Button>
+          <Button onClick={handleEditSubmit} variant="contained" disabled={saving}>
+            {saving ? <CircularProgress size={20} /> : 'Save'}
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>

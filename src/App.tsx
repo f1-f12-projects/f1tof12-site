@@ -16,6 +16,7 @@ import InvoiceList from './pages/company/InvoiceList';
 import UserList from './pages/admin/UserList';
 import CreateUser from './pages/admin/CreateUser';
 import Login from './pages/Login';
+import ComingSoon from './pages/ComingSoon';
 
 const HomePage: React.FC = () => (
   <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -47,6 +48,17 @@ const AppContent: React.FC = () => {
               <Route path="/admin/users" element={<UserList />} />
               <Route path="/admin/users/create" element={<CreateUser />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/recruiter" element={<ComingSoon />} />
+              <Route path="/profiles" element={<ComingSoon />} />
+              <Route path="/reports" element={<ComingSoon />} />
+              <Route path="/about" element={<ComingSoon />} />
+              <Route path="/careers" element={<ComingSoon />} />
+              <Route path="/contact" element={<ComingSoon />} />
+              <Route path="/consulting" element={<ComingSoon />} />
+              <Route path="/development" element={<ComingSoon />} />
+              <Route path="/support" element={<ComingSoon />} />
+              <Route path="/privacy" element={<ComingSoon />} />
+              <Route path="/terms" element={<ComingSoon />} />
             </Routes>
           </Box>
           

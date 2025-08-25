@@ -104,13 +104,18 @@ const MegaBar: React.FC = () => {
             Company
           </Button>
           
-          {['Recruiter', 'Profiles', 'Reports'].map((item) => (
+          {[
+            { label: 'Recruiter', path: '/recruiter' },
+            { label: 'Profiles', path: '/profiles' },
+            { label: 'Reports', path: '/reports' }
+          ].map(({ label, path }) => (
             <Button
-              key={item}
+              key={label}
               variant="text"
+              onClick={() => navigate(path)}
               sx={mainButtonStyle}
             >
-              {item}
+              {label}
             </Button>
           ))}
           

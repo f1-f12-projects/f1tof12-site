@@ -36,7 +36,7 @@ const Header: React.FC = () => {
   return (
     <AppBar position="static" color="primary" elevation={1}>
       <Toolbar>
-        <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1, cursor: 'pointer' }} onClick={() => navigate('/')}>
           <img 
             src="/images/F1toF12-Logo.png" 
             alt="F1toF12 Logo" 

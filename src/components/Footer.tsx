@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, Typography, Link, Grid } from '@mui/material';
+import { Link as RouterLink } from 'react-router-dom';
 
 const Footer: React.FC = () => {
   return (
@@ -9,24 +10,24 @@ const Footer: React.FC = () => {
             <Typography variant="h6" gutterBottom>
               Company
             </Typography>
-            <Link href="#" color="inherit" underline="hover" display="block">About Us</Link>
-            <Link href="#" color="inherit" underline="hover" display="block">Careers</Link>
-            <Link href="#" color="inherit" underline="hover" display="block">Contact</Link>
+            <Link component={RouterLink} to="/about" color="inherit" underline="hover" display="block">About Us</Link>
+            <Link component={RouterLink} to="/careers" color="inherit" underline="hover" display="block">Careers</Link>
+            <Link component={RouterLink} to="/contact" color="inherit" underline="hover" display="block">Contact</Link>
           </Grid>
           <Grid item xs={12} sm={3}>
             <Typography variant="h6" gutterBottom>
               Services
             </Typography>
-            <Link href="#" color="inherit" underline="hover" display="block">Consulting</Link>
-            <Link href="#" color="inherit" underline="hover" display="block">Development</Link>
-            <Link href="#" color="inherit" underline="hover" display="block">Support</Link>
+            <Link component={RouterLink} to="/consulting" color="inherit" underline="hover" display="block">Consulting</Link>
+            <Link component={RouterLink} to="/development" color="inherit" underline="hover" display="block">Development</Link>
+            <Link component={RouterLink} to="/support" color="inherit" underline="hover" display="block">Support</Link>
           </Grid>
           <Grid item xs={12} sm={3}>
             <Typography variant="h6" gutterBottom>
               Legal
             </Typography>
-            <Link href="#" color="inherit" underline="hover" display="block">Privacy Policy</Link>
-            <Link href="#" color="inherit" underline="hover" display="block">Terms of Service</Link>
+            <Link component={RouterLink} to="/privacy" color="inherit" underline="hover" display="block">Privacy Policy</Link>
+            <Link component={RouterLink} to="/terms" color="inherit" underline="hover" display="block">Terms of Service</Link>
           </Grid>
           <Grid item xs={12} sm={3}>
             <Typography variant="h6" gutterBottom>
