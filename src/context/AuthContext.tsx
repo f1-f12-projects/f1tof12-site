@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { setRefreshTokenFunction } from '../services/apiService';
 
 interface AuthContextType {
   username: string | null;
@@ -104,6 +105,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   useEffect(() => {
+    setRefreshTokenFunction(refreshAccessToken);
+    
     const token = localStorage.getItem('authToken');
     const storedUsername = localStorage.getItem('username');
     const storedRefreshToken = localStorage.getItem('refreshToken');

@@ -16,18 +16,18 @@ import { handleApiResponse } from '../../utils/apiHandler';
 const InvoiceList: React.FC = () => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
-  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [editOpen, setEditOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [editInvoice, setEditInvoice] = useState<Invoice | null>(null);
-  const [newInvoice, setNewInvoice] = useState({
+  const [newInvoice, setNewInvoice] = useState<Omit<Invoice, 'id' | 'status' | 'issue_date' | 'created_date' | 'updated_date'> & { amount: number; raised_date: string }>({
     invoice_number: '',
     company_name: '',
     po_number: '',
-    amount: '',
+    amount: 0,
     raised_date: '',
     due_date: ''
   });
@@ -40,30 +40,43 @@ const InvoiceList: React.FC = () => {
     }
     
     const loadData = async () => {
-      await Promise.all([
-        handleApiResponse(
-          () => invoiceService.getInvoices(),
-          (data) => setInvoices(Array.isArray(data) ? data : []),
-          () => alert.error('Failed to load invoices')
-        ),
-        handleApiResponse(
-          () => companyService.getCompanies(),
-          (data) => setCompanies((Array.isArray(data) ? data : []).filter(c => c.status === 'active')),
-          () => alert.error('Failed to load companies')
-        )
-      ]);
+      await handleApiResponse(
+        () => invoiceService.getInvoices(),
+        async (data) => {
+          const invoiceData = Array.isArray(data) ? data : [];
+          // Load companies first if we have invoices
+          if (invoiceData.length > 0) {
+            await handleApiResponse(
+              () => companyService.getCompanies(),
+              (companyData) => {
+                const activeCompanies = (Array.isArray(companyData) ? companyData : []).filter(c => c.status === 'active');
+                setCompanies(activeCompanies);
+                // Map company_id to company_name in invoices
+                const invoicesWithNames = invoiceData.map(invoice => ({
+                  ...invoice,
+                  company_name: activeCompanies.find(c => c.id === (invoice as any).company_id)?.name || 'Unknown Company'
+                }));
+                setInvoices(invoicesWithNames);
+              },
+              () => alert.error('Failed to load companies')
+            );
+          } else {
+            setInvoices(invoiceData);
+          }
+
+        },
+        () => alert.error('Failed to load invoices')
+      );
     };
     loadData();
   }, [isAuthenticated, navigate]);
 
   const filteredInvoices = useMemo(() => 
     invoices.filter(invoice => {
-      const sanitizedSearchTerm = searchTerm.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&').toLowerCase();
-      const matchesSearch = invoice.invoice_number.toLowerCase().includes(sanitizedSearchTerm) ||
-                           invoice.company_name.toLowerCase().includes(sanitizedSearchTerm);
+      const matchesCompany = !selectedCompany || invoice.company_name === selectedCompany;
       const matchesStatus = statusFilter === 'all' || invoice.status === statusFilter;
-      return matchesSearch && matchesStatus;
-    }), [invoices, searchTerm, statusFilter]);
+      return matchesCompany && matchesStatus;
+    }), [invoices, selectedCompany, statusFilter]);
 
   const handleStatusUpdate = async (id: number, newStatus: string) => {
     const invoice = invoices.find(i => i.id === id);
@@ -78,7 +91,8 @@ const InvoiceList: React.FC = () => {
     
     await handleApiResponse(
       () => invoiceService.updateInvoiceStatus(id, newStatus),
-      () => {
+      (updatedInvoice) => {
+        setEditOpen(false);
         setInvoices(prev => prev.map(i => 
           i.id === id ? { ...i, status: newStatus as Invoice['status'] } : i
         ));
@@ -102,13 +116,11 @@ const InvoiceList: React.FC = () => {
       invoice_number: newInvoice.invoice_number,
       po_number: newInvoice.po_number,
       company_id: selectedCompany.id,
-      amount: parseFloat(newInvoice.amount),
-      status: 'pending'
+      amount: newInvoice.amount,
+      status: 'pending',
+      raised_date: newInvoice.raised_date || new Date().toISOString().split('T')[0]
     };
 
-    if (newInvoice.raised_date) {
-      payload.raised_date = newInvoice.raised_date;
-    }
     if (newInvoice.due_date) {
       payload.due_date = newInvoice.due_date;
     }
@@ -117,7 +129,7 @@ const InvoiceList: React.FC = () => {
       () => invoiceService.createInvoice(payload),
       (invoice) => {
         setInvoices(prev => [...prev, invoice]);
-        setNewInvoice({ invoice_number: '', company_name: '', po_number: '', amount: '', raised_date: '', due_date: '' });
+        setNewInvoice({ invoice_number: '', company_name: '', po_number: '', amount: 0, raised_date: '', due_date: '' });
         setAddOpen(false);
       }
     );
@@ -125,6 +137,11 @@ const InvoiceList: React.FC = () => {
 
   const handleWheel = (event: React.WheelEvent) => {
     event.preventDefault();
+  };
+
+  const getCompanyName = (companyId: number): string => {
+    const company = companies.find(c => c.id === companyId);
+    return company?.name || 'Unknown Company';
   };
 
   const getStatusColor = (status: string) => {
@@ -165,20 +182,27 @@ const InvoiceList: React.FC = () => {
         
         <Box sx={{ p: 4 }}>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 4 }}>
-            <TextField
+            <Autocomplete
               fullWidth
-              placeholder="Search invoices..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              InputProps={{
-                startAdornment: <Search sx={{ mr: 1, color: 'text.secondary' }} />
-              }}
-              sx={{ 
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: 3,
-                  backgroundColor: 'action.hover'
-                }
-              }}
+              options={companies.map(c => c.name)}
+              value={selectedCompany}
+              onChange={(_, value) => setSelectedCompany(value)}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  placeholder="Filter by company..."
+                  InputProps={{
+                    ...params.InputProps,
+                    startAdornment: <Search sx={{ mr: 1, color: 'text.secondary' }} />
+                  }}
+                  sx={{ 
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 3,
+                      backgroundColor: 'action.hover'
+                    }
+                  }}
+                />
+              )}
             />
             <ToggleButtonGroup
               value={statusFilter}
@@ -294,9 +318,8 @@ const InvoiceList: React.FC = () => {
             />
             <Autocomplete
               fullWidth
-              freeSolo
               options={companies.map(c => c.name)}
-              value={newInvoice.company_name}
+              value={newInvoice.company_name || null}
               onChange={(_, value) => setNewInvoice({ ...newInvoice, company_name: value || '' })}
               renderInput={(params) => (
                 <TextField {...params} label="Company Name" sx={{ mb: 2 }} />
@@ -307,7 +330,7 @@ const InvoiceList: React.FC = () => {
               label="Amount"
               type="number"
               value={newInvoice.amount}
-              onChange={(e) => setNewInvoice({ ...newInvoice, amount: e.target.value })}
+              onChange={(e) => setNewInvoice({ ...newInvoice, amount: parseFloat(e.target.value) || 0 })}
               onWheel={handleWheel}
               sx={{ mb: 2 }}
             />
@@ -320,6 +343,7 @@ const InvoiceList: React.FC = () => {
               InputLabelProps={{ shrink: true }}
               sx={{ mb: 2 }}
             />
+
             <TextField
               fullWidth
               label="Due Date"

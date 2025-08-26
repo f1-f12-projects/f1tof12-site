@@ -1,5 +1,11 @@
 const BASE_URL = process.env.REACT_APP_BASE_URL;
 
+let refreshTokenFunction: (() => Promise<boolean>) | null = null;
+
+export const setRefreshTokenFunction = (fn: () => Promise<boolean>) => {
+  refreshTokenFunction = fn;
+};
+
 const apiCall = async <T>(method: string, endpoint: string, body?: any): Promise<T> => {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   
@@ -7,6 +13,21 @@ const apiCall = async <T>(method: string, endpoint: string, body?: any): Promise
   if (!endpoint.includes('/login')) {
     const token = localStorage.getItem('authToken');
     if (token) {
+      const tokenData = JSON.parse(atob(token.split('.')[1]));
+      if (tokenData.exp < Math.floor(Date.now() / 1000)) {
+        if (refreshTokenFunction) {
+          const refreshed = await refreshTokenFunction();
+          if (!refreshed) {
+            window.location.href = '/login';
+            throw new Error('Authentication failed');
+          }
+          const newToken = localStorage.getItem('authToken');
+          headers['Authorization'] = `Bearer ${newToken}`;
+        } else {
+          window.location.href = '/login';
+          throw new Error('Authentication failed');
+        }
+      }
       headers['Authorization'] = `Bearer ${token}`;
     }
   }

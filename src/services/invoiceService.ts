@@ -14,8 +14,8 @@ export const invoiceService = {
   },
 
   async updateInvoiceStatus(id: number, status: string): Promise<ApiResponse> {
-    let endpoint = process.env.REACT_APP_UPDATE_INVOICE_ENDPOINT || '';
-    endpoint = endpoint.replace('{invoiceId}', id.toString());
+    let endpoint = process.env.REACT_APP_INVOICE_UPDATE_ENDPOINT || '';
+    endpoint = endpoint.replace('{invoice_id}', id.toString());
     return apiService.put<ApiResponse>(endpoint, { status });
   }
 };
