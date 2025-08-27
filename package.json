@@ -7,7 +7,7 @@
   "private": true,
   "scripts": {
     "start": "cat .env.local .env.endpoints > .env && react-scripts start",
-    "build": "cat .env.production .env.endpoints > .env && react-scripts build serve -s build",
+    "build": "cat .env.production .env.endpoints > .env && react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
