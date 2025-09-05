@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { authService } from '../services/authService';
 import { alert } from '../utils/alert';
 import { handleApiResponse } from '../utils/apiHandler';
+import { roleHelper } from '../utils/roleHelper';
 
 const PasswordField = ({ label, value, onChange, show, onToggle, error, helperText }: any) => (
   <TextField
@@ -71,8 +72,8 @@ const Login: React.FC = () => {
         }),
         (data: any) => {
           if (data.access_token) {
-            login(formData.username, data.access_token);
-            navigate('/');
+            login(formData.username, data.access_token, data.role);
+            navigate(roleHelper.getDefaultRoute(data.role));
           } else {
             setErrors({ username: '', password: 'Invalid credentials' });
           }

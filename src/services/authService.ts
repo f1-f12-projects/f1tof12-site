@@ -1,5 +1,6 @@
 import { ApiResponse } from '../models/ApiResponse';
 import { apiService } from './apiService';
+import { UserRole } from '../types/roles';
 
 interface LoginRequest {
   username: string;
@@ -10,6 +11,7 @@ interface LoginResponse {
   access_token: string;
   token_type: string;
   status_code: number;
+  role: UserRole;
 }
 
 interface PasswordChangeRequest {
