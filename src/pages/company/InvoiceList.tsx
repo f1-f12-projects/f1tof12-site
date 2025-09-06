@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Container, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Box, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Button, Chip, Stack, Card, ToggleButton, ToggleButtonGroup, MenuItem, Autocomplete } from '@mui/material';
+import { Container, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Box, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Button, Chip, Stack, Card, ToggleButton, ToggleButtonGroup, MenuItem, Autocomplete, CircularProgress } from '@mui/material';
 import { Edit, Search, Receipt, Add } from '@mui/icons-material';
 import { Invoice } from '../../models/Invoice';
 import { Company } from '../../models/Company';
@@ -12,14 +12,98 @@ import { alert } from '../../utils/alert';
 import { showConfirm } from '../../utils/confirm';
 import { useAuth } from '../../context/AuthContext';
 import { handleApiResponse } from '../../utils/apiHandler';
+import { CURRENCY_SYMBOL } from '../../utils/constants';
+
+interface FormFieldProps {
+  field: string;
+  label: string;
+  type?: string;
+  required?: boolean;
+  options?: string[] | null;
+  newInvoice: any;
+  fieldErrors: {[key: string]: string};
+  addingInvoice: boolean;
+  updateInvoiceField: (field: string, value: any) => void;
+  handleWheel?: (event: React.WheelEvent) => void;
+}
+
+const FormField: React.FC<FormFieldProps> = ({ 
+  field, 
+  label, 
+  type = 'text', 
+  required = false, 
+  options = null,
+  newInvoice,
+  fieldErrors,
+  addingInvoice,
+  updateInvoiceField,
+  handleWheel
+}) => {
+  if (!newInvoice) return null;
+  
+  const displayValue = field === 'amount' && newInvoice[field] > 0 
+    ? newInvoice[field].toLocaleString('en-IN')
+    : newInvoice[field] || (type === 'number' ? 0 : '');
+
+  const commonProps = {
+    value: displayValue,
+    disabled: addingInvoice,
+    error: !!fieldErrors[field],
+    helperText: fieldErrors[field]
+  };
+
+  if (options) {
+    return (
+      <Autocomplete
+        options={options}
+        value={newInvoice[field] || null}
+        onChange={(_, value) => updateInvoiceField(field, value || '')}
+        disabled={addingInvoice}
+        renderInput={(params) => (
+          <TextField {...params} label={`${label}${required ? ' *' : ''}`} {...commonProps} />
+        )}
+      />
+    );
+  }
+
+  return (
+    <TextField
+      label={`${label}${required ? ' *' : ''}`}
+      type={field === 'amount' ? 'text' : type}
+      onChange={(e) => {
+        if (field === 'amount') {
+          const value = e.target.value.replace(/[^0-9]/g, '');
+          updateInvoiceField(field, parseFloat(value) || 0);
+        } else if (type === 'number') {
+          const value = e.target.value.replace(/,/g, '');
+          updateInvoiceField(field, parseFloat(value) || 0);
+        } else {
+          updateInvoiceField(field, e.target.value);
+        }
+      }}
+      onWheel={type === 'number' ? handleWheel : undefined}
+      InputLabelProps={type === 'date' ? { shrink: true } : undefined}
+      InputProps={field === 'amount' ? { startAdornment: CURRENCY_SYMBOL } : undefined}
+      {...commonProps}
+    />
+  );
+};
 
 const InvoiceList: React.FC = () => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [dateFrom, setDateFrom] = useState<string>('');
+  const [dateTo, setDateTo] = useState<string>('');
+  const [dueDateFrom, setDueDateFrom] = useState<string>('');
+  const [dueDateTo, setDueDateTo] = useState<string>('');
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [updatingStatus, setUpdatingStatus] = useState<number | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
+  const [addingInvoice, setAddingInvoice] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [editInvoice, setEditInvoice] = useState<Invoice | null>(null);
@@ -40,6 +124,7 @@ const InvoiceList: React.FC = () => {
     }
     
     const loadData = async () => {
+      setLoading(true);
       await handleApiResponse(
         () => invoiceService.getInvoices(),
         async (data) => {
@@ -63,9 +148,12 @@ const InvoiceList: React.FC = () => {
           } else {
             setInvoices(invoiceData);
           }
-
+          setLoading(false);
         },
-        () => alert.error('Failed to load invoices')
+        () => {
+          alert.error('Failed to load invoices');
+          setLoading(false);
+        }
       );
     };
     loadData();
@@ -75,8 +163,28 @@ const InvoiceList: React.FC = () => {
     invoices.filter(invoice => {
       const matchesCompany = !selectedCompany || invoice.company_name === selectedCompany;
       const matchesStatus = statusFilter === 'all' || invoice.status === statusFilter;
-      return matchesCompany && matchesStatus;
-    }), [invoices, selectedCompany, statusFilter]);
+      
+      // Raised date filtering
+      const dateToCheck = invoice.issue_date || (invoice as any).raised_date;
+      let matchesRaisedDate = true;
+      if (dateToCheck && (dateFrom || dateTo)) {
+        const invoiceDate = new Date(dateToCheck.split('T')[0]);
+        const matchesDateFrom = !dateFrom || invoiceDate >= new Date(dateFrom);
+        const matchesDateTo = !dateTo || invoiceDate <= new Date(dateTo);
+        matchesRaisedDate = matchesDateFrom && matchesDateTo;
+      }
+      
+      // Due date filtering
+      let matchesDueDate = true;
+      if (invoice.due_date && (dueDateFrom || dueDateTo)) {
+        const dueDate = new Date(invoice.due_date.split('T')[0]);
+        const matchesDueDateFrom = !dueDateFrom || dueDate >= new Date(dueDateFrom);
+        const matchesDueDateTo = !dueDateTo || dueDate <= new Date(dueDateTo);
+        matchesDueDate = matchesDueDateFrom && matchesDueDateTo;
+      }
+      
+      return matchesCompany && matchesStatus && matchesRaisedDate && matchesDueDate;
+    }), [invoices, selectedCompany, statusFilter, dateFrom, dateTo, dueDateFrom, dueDateTo]);
 
   const handleStatusUpdate = async (id: number, newStatus: string) => {
     const invoice = invoices.find(i => i.id === id);
@@ -89,22 +197,46 @@ const InvoiceList: React.FC = () => {
     
     if (!confirmed) return;
     
+    setEditOpen(false);
+    setUpdatingStatus(id);
+    
     await handleApiResponse(
       () => invoiceService.updateInvoiceStatus(id, newStatus),
       (updatedInvoice) => {
-        setEditOpen(false);
         setInvoices(prev => prev.map(i => 
           i.id === id ? { ...i, status: newStatus as Invoice['status'] } : i
         ));
-      }
+        setUpdatingStatus(null);
+      },
+      () => setUpdatingStatus(null)
     );
   };
 
+  const updateInvoiceField = (field: string, value: any) => {
+    setNewInvoice(prev => ({ ...prev, [field]: value }));
+    if (fieldErrors[field]) {
+      setFieldErrors(prev => ({ ...prev, [field]: '' }));
+    }
+  };
+
+
+
   const handleAddInvoice = async () => {
-    if (!newInvoice.invoice_number || !newInvoice.company_name || !newInvoice.amount) {
-      alert.error('Please fill in all required fields');
+    const errors: {[key: string]: string} = {};
+    
+    if (!newInvoice.invoice_number) errors.invoice_number = 'Invoice number is required';
+    if (!newInvoice.company_name) errors.company_name = 'Company name is required';
+    if (!newInvoice.amount || newInvoice.amount <= 0) errors.amount = 'Amount must be greater than 0';
+    
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      const errorMessages = Object.values(errors);
+      alert.error(errorMessages.join(', '));
       return;
     }
+    
+    setFieldErrors({});
+    setAddingInvoice(true);
 
     const selectedCompany = companies.find(c => c.name === newInvoice.company_name);
     if (!selectedCompany) {
@@ -128,11 +260,18 @@ const InvoiceList: React.FC = () => {
     await handleApiResponse(
       () => invoiceService.createInvoice(payload),
       (invoice) => {
-        setInvoices(prev => [...prev, invoice]);
+        const invoiceWithCompanyName = {
+          ...invoice,
+          company_name: selectedCompany.name
+        };
+        setInvoices(prev => [...prev, invoiceWithCompanyName]);
         setNewInvoice({ invoice_number: '', company_name: '', po_number: '', amount: 0, raised_date: '', due_date: '' });
+        setFieldErrors({});
         setAddOpen(false);
-      }
+      },
+      () => setAddingInvoice(false)
     );
+    setAddingInvoice(false);
   };
 
   const handleWheel = (event: React.WheelEvent) => {
@@ -181,43 +320,115 @@ const InvoiceList: React.FC = () => {
         </Box>
         
         <Box sx={{ p: 4 }}>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 4 }}>
-            <Autocomplete
-              fullWidth
-              options={companies.map(c => c.name)}
-              value={selectedCompany}
-              onChange={(_, value) => setSelectedCompany(value)}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  placeholder="Filter by company..."
-                  InputProps={{
-                    ...params.InputProps,
-                    startAdornment: <Search sx={{ mr: 1, color: 'text.secondary' }} />
-                  }}
-                  sx={{ 
-                    '& .MuiOutlinedInput-root': {
-                      borderRadius: 3,
-                      backgroundColor: 'action.hover'
-                    }
-                  }}
-                />
-              )}
-            />
-            <ToggleButtonGroup
-              value={statusFilter}
-              exclusive
-              onChange={(_, newFilter) => newFilter && setStatusFilter(newFilter)}
-              sx={{ flexShrink: 0 }}
-            >
-              <ToggleButton value="all" sx={{ px: 3, borderRadius: 2 }}>All</ToggleButton>
-              <ToggleButton value="pending" sx={{ px: 3, borderRadius: 2 }}>Pending</ToggleButton>
-              <ToggleButton value="paid" sx={{ px: 3, borderRadius: 2 }}>Paid</ToggleButton>
-              <ToggleButton value="overdue" sx={{ px: 3, borderRadius: 2 }}>Overdue</ToggleButton>
-            </ToggleButtonGroup>
+          <Stack spacing={2} sx={{ mb: 4 }}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+              <Autocomplete
+                fullWidth
+                options={companies.map(c => c.name)}
+                value={selectedCompany}
+                onChange={(_, value) => setSelectedCompany(value)}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    placeholder="Filter by company..."
+                    InputProps={{
+                      ...params.InputProps,
+                      startAdornment: <Search sx={{ mr: 1, color: 'text.secondary' }} />
+                    }}
+                    sx={{ 
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 3,
+                        backgroundColor: 'action.hover'
+                      }
+                    }}
+                  />
+                )}
+              />
+              <ToggleButtonGroup
+                value={statusFilter}
+                exclusive
+                onChange={(_, newFilter) => newFilter && setStatusFilter(newFilter)}
+                sx={{ flexShrink: 0 }}
+              >
+                <ToggleButton value="all" sx={{ px: 3, borderRadius: 2 }}>All</ToggleButton>
+                <ToggleButton value="pending" sx={{ px: 3, borderRadius: 2 }}>Pending</ToggleButton>
+                <ToggleButton value="paid" sx={{ px: 3, borderRadius: 2 }}>Paid</ToggleButton>
+                <ToggleButton value="overdue" sx={{ px: 3, borderRadius: 2 }}>Overdue</ToggleButton>
+              </ToggleButtonGroup>
+            </Stack>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+              <TextField
+                label="Raised From"
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                sx={{ 
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 3,
+                    backgroundColor: 'action.hover'
+                  }
+                }}
+              />
+              <TextField
+                label="Raised To"
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                sx={{ 
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 3,
+                    backgroundColor: 'action.hover'
+                  }
+                }}
+              />
+              <TextField
+                label="Due From"
+                type="date"
+                value={dueDateFrom}
+                onChange={(e) => setDueDateFrom(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                sx={{ 
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 3,
+                    backgroundColor: 'action.hover'
+                  }
+                }}
+              />
+              <TextField
+                label="Due To"
+                type="date"
+                value={dueDateTo}
+                onChange={(e) => setDueDateTo(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                sx={{ 
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 3,
+                    backgroundColor: 'action.hover'
+                  }
+                }}
+              />
+              <Button
+                variant="outlined"
+                onClick={() => {
+                  setDateFrom('');
+                  setDateTo('');
+                  setDueDateFrom('');
+                  setDueDateTo('');
+                }}
+                sx={{ minWidth: 'auto', px: 2 }}
+              >
+                Clear All
+              </Button>
+            </Stack>
           </Stack>
         
-          {filteredInvoices.length === 0 ? (
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+              <CircularProgress />
+            </Box>
+          ) : filteredInvoices.length === 0 ? (
             <Box sx={tableStyles.emptyState}>
               <Receipt sx={tableStyles.emptyIcon} />
               <Typography variant="h6" color="text.secondary" gutterBottom>
@@ -258,7 +469,7 @@ const InvoiceList: React.FC = () => {
                       </TableCell>
                       <TableCell sx={tableStyles.bodyCell}>
                         <Typography variant="body2" fontWeight={500} noWrap>
-                          ${invoice.amount.toLocaleString()}
+                          {CURRENCY_SYMBOL}{invoice.amount.toLocaleString('en-IN')}
                         </Typography>
                       </TableCell>
                       <TableCell sx={tableStyles.bodyCell}>
@@ -272,12 +483,16 @@ const InvoiceList: React.FC = () => {
                         </Typography>
                       </TableCell>
                       <TableCell sx={tableStyles.bodyCell}>
-                        <Chip 
-                          label={invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
-                          color={getStatusColor(invoice.status)}
-                          size="small"
-                          sx={{ fontWeight: 500 }}
-                        />
+                        {updatingStatus === invoice.id ? (
+                          <CircularProgress size={20} />
+                        ) : (
+                          <Chip 
+                            label={invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
+                            color={getStatusColor(invoice.status)}
+                            size="small"
+                            sx={{ fontWeight: 500 }}
+                          />
+                        )}
                       </TableCell>
                       <TableCell sx={tableStyles.bodyCell}>
                         <IconButton 
@@ -299,63 +514,80 @@ const InvoiceList: React.FC = () => {
           )}
         </Box>
         
-        <Dialog open={addOpen} onClose={() => setAddOpen(false)} maxWidth="sm" fullWidth>
+        <Dialog open={addOpen} onClose={() => !addingInvoice && setAddOpen(false)} maxWidth="sm" fullWidth>
           <DialogTitle>Add New Invoice</DialogTitle>
-          <DialogContent>
-            <TextField
-              fullWidth
-              label="Invoice Number"
-              value={newInvoice.invoice_number}
-              onChange={(e) => setNewInvoice({ ...newInvoice, invoice_number: e.target.value })}
-              sx={{ mb: 2, mt: 1 }}
-            />
-            <TextField
-              fullWidth
-              label="PO Number"
-              value={newInvoice.po_number}
-              onChange={(e) => setNewInvoice({ ...newInvoice, po_number: e.target.value })}
-              sx={{ mb: 2 }}
-            />
-            <Autocomplete
-              fullWidth
-              options={companies.map(c => c.name)}
-              value={newInvoice.company_name || null}
-              onChange={(_, value) => setNewInvoice({ ...newInvoice, company_name: value || '' })}
-              renderInput={(params) => (
-                <TextField {...params} label="Company Name" sx={{ mb: 2 }} />
-              )}
-            />
-            <TextField
-              fullWidth
-              label="Amount"
-              type="number"
-              value={newInvoice.amount}
-              onChange={(e) => setNewInvoice({ ...newInvoice, amount: parseFloat(e.target.value) || 0 })}
-              onWheel={handleWheel}
-              sx={{ mb: 2 }}
-            />
-            <TextField
-              fullWidth
-              label="Raised Date"
-              type="date"
-              value={newInvoice.raised_date}
-              onChange={(e) => setNewInvoice({ ...newInvoice, raised_date: e.target.value })}
-              InputLabelProps={{ shrink: true }}
-              sx={{ mb: 2 }}
-            />
-
-            <TextField
-              fullWidth
-              label="Due Date"
-              type="date"
-              value={newInvoice.due_date}
-              onChange={(e) => setNewInvoice({ ...newInvoice, due_date: e.target.value })}
-              InputLabelProps={{ shrink: true }}
-            />
+          <DialogContent sx={{ pt: 2 }}>
+            <Box sx={{ display: 'grid', gap: 2 }}>
+              <FormField 
+                field="invoice_number" 
+                label="Invoice Number" 
+                required 
+                newInvoice={newInvoice}
+                fieldErrors={fieldErrors}
+                addingInvoice={addingInvoice}
+                updateInvoiceField={updateInvoiceField}
+              />
+              <FormField 
+                field="po_number" 
+                label="PO Number" 
+                newInvoice={newInvoice}
+                fieldErrors={fieldErrors}
+                addingInvoice={addingInvoice}
+                updateInvoiceField={updateInvoiceField}
+              />
+              <FormField 
+                field="company_name" 
+                label="Company Name" 
+                required 
+                options={companies.map(c => c.name)} 
+                newInvoice={newInvoice}
+                fieldErrors={fieldErrors}
+                addingInvoice={addingInvoice}
+                updateInvoiceField={updateInvoiceField}
+              />
+              <FormField 
+                field="amount" 
+                label="Amount" 
+                type="number" 
+                required 
+                newInvoice={newInvoice}
+                fieldErrors={fieldErrors}
+                addingInvoice={addingInvoice}
+                updateInvoiceField={updateInvoiceField}
+                handleWheel={handleWheel}
+              />
+              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                <FormField 
+                  field="raised_date" 
+                  label="Raised Date" 
+                  type="date" 
+                  newInvoice={newInvoice}
+                  fieldErrors={fieldErrors}
+                  addingInvoice={addingInvoice}
+                  updateInvoiceField={updateInvoiceField}
+                />
+                <FormField 
+                  field="due_date" 
+                  label="Due Date" 
+                  type="date" 
+                  newInvoice={newInvoice}
+                  fieldErrors={fieldErrors}
+                  addingInvoice={addingInvoice}
+                  updateInvoiceField={updateInvoiceField}
+                />
+              </Box>
+            </Box>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setAddOpen(false)}>Cancel</Button>
-            <Button onClick={handleAddInvoice} variant="contained">Create</Button>
+            <Button onClick={() => setAddOpen(false)} disabled={addingInvoice}>Cancel</Button>
+            <Button 
+              onClick={handleAddInvoice} 
+              variant="contained" 
+              disabled={addingInvoice}
+              startIcon={addingInvoice ? <CircularProgress size={16} /> : null}
+            >
+              {addingInvoice ? 'Creating...' : 'Create'}
+            </Button>
           </DialogActions>
         </Dialog>
 

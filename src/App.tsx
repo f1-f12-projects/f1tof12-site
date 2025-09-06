@@ -17,6 +17,7 @@ import UserList from './pages/admin/UserList';
 import CreateUser from './pages/admin/CreateUser';
 import Login from './pages/Login';
 import ComingSoon from './pages/ComingSoon';
+import PageNotFound from './pages/PageNotFound';
 
 const HomePage: React.FC = () => (
   <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -59,6 +60,7 @@ const AppContent: React.FC = () => {
               <Route path="/support" element={<ComingSoon />} />
               <Route path="/privacy" element={<ComingSoon />} />
               <Route path="/terms" element={<ComingSoon />} />
+              <Route path="*" element={<PageNotFound />} />
             </Routes>
           </Box>
           

@@ -31,6 +31,11 @@ export const handleApiResponse = async <T>(
     onError ? onError(response as any) : alert.error(errorMsg);
     return null;
   } catch (error: any) {
+    if (error.status === 403) {
+      alert.error('Access denied. You do not have permission to perform this action.');
+      return null;
+    }
+    
     const errorMsg = extractErrorMessage(error);
     onError ? onError(error.data || error) : alert.error(errorMsg);
     return null;
