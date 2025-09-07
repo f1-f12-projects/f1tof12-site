@@ -2,7 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.1.1] - 2024-12-19
+## [1.1.2] - 2025-09-07
+
+## Added
+- Admin can reset other users password
+- Replaced Action text with icons
+
+## [1.1.2] - 2025-09-05
 
 ### Added
 - Role-based authentication system (recruiter, lead, manager, finance)

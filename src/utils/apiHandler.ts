@@ -4,7 +4,13 @@ import { alert } from './alert';
 const extractErrorMessage = (error: any): string => {
   const { detail, message } = error.data || error;
   
-  if (Array.isArray(detail)) return detail.map((err: any) => `${err.msg}${err.input ? ` (input: ${err.input})` : ''}`).join(', ');
+  if (Array.isArray(detail)) {
+    return detail.map((err: any) => {
+      const field = err.loc ? err.loc.slice(-1)[0] : '';
+      const fieldInfo = field ? ` (${field})` : '';
+      return `${err.msg}${fieldInfo}`;
+    }).join(', ');
+  }
   if (detail?.message) return detail.message;
   if (typeof detail === 'string') return detail;
   if (message) return message;
@@ -32,7 +38,8 @@ export const handleApiResponse = async <T>(
     return null;
   } catch (error: any) {
     if (error.status === 403) {
-      alert.error('Access denied. You do not have permission to perform this action.');
+      const errorMsg = extractErrorMessage(error);
+      alert.error(errorMsg);
       return null;
     }
     

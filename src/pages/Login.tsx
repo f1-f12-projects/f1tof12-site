@@ -47,8 +47,6 @@ const Login: React.FC = () => {
     setErrors(prev => ({ ...prev, [name]: '' }));
   };
 
-
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     

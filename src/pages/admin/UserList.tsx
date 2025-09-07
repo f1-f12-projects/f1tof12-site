@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Button, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
+import { Box, Button, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Select, MenuItem, FormControl, InputLabel, IconButton, Tooltip, InputAdornment } from '@mui/material';
+import { Edit, Block, CheckCircle, LockReset, Visibility, VisibilityOff } from '@mui/icons-material';
 import { User } from '../../models/User';
 import { userService } from '../../services/userService';
 import { useAuth } from '../../context/AuthContext';
@@ -18,7 +19,11 @@ const UserList: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'enabled' | 'disabled' | 'all'>('enabled');
-  const { isAuthenticated } = useAuth();
+  const [resetPasswordModalOpen, setResetPasswordModalOpen] = useState(false);
+  const [resetPasswordUser, setResetPasswordUser] = useState<string>('');
+  const [temporaryPassword, setTemporaryPassword] = useState('');
+  const [showTemporaryPassword, setShowTemporaryPassword] = useState(false);
+  const { isAuthenticated, username: currentUsername } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -49,6 +54,33 @@ const UserList: React.FC = () => {
       () => isEnabled ? userService.disableUser(username) : userService.enableUser(username),
       () => loadUsers()
     );
+  };
+
+  const openResetPasswordModal = (username: string) => {
+    setResetPasswordUser(username);
+    setTemporaryPassword('');
+    setResetPasswordModalOpen(true);
+  };
+
+  const closeResetPasswordModal = () => {
+    setResetPasswordModalOpen(false);
+    setResetPasswordUser('');
+    setTemporaryPassword('');
+    setSaving(false);
+  };
+
+  const handleResetPassword = async () => {
+    if (!temporaryPassword.trim()) return;
+    
+    setSaving(true);
+    await handleApiResponse(
+      () => userService.resetPassword(resetPasswordUser, temporaryPassword),
+      () => {
+        loadUsers();
+        closeResetPasswordModal();
+      }
+    );
+    setSaving(false);
   };
 
   const openEditModal = (user: User) => {
@@ -174,22 +206,40 @@ const UserList: React.FC = () => {
                     />
                   </TableCell>
                   <TableCell sx={tableStyles.bodyCell}>
-                    <Box sx={{ display: 'flex', gap: 1 }}>
-                      <Button 
-                        size="small" 
-                        sx={tableStyles.actionButton}
-                        onClick={() => openEditModal(user)}
-                        disabled={!user.enabled}
-                      >
-                        Edit
-                      </Button>
-                      <Button 
-                        size="small" 
-                        sx={tableStyles.actionButton}
-                        onClick={() => toggleUserStatus(user.username, user.enabled)}
-                      >
-                        {user.enabled ? 'Disable' : 'Enable'}
-                      </Button>
+                    <Box sx={{ display: 'flex', gap: 0.5 }}>
+                      <Tooltip title="Edit">
+                        <span>
+                          <IconButton 
+                            size="small" 
+                            onClick={() => openEditModal(user)}
+                            disabled={!user.enabled}
+                          >
+                            <Edit fontSize="small" />
+                          </IconButton>
+                        </span>
+                      </Tooltip>
+                      <Tooltip title={user.enabled ? 'Disable' : 'Enable'}>
+                        <span>
+                          <IconButton 
+                            size="small" 
+                            onClick={() => toggleUserStatus(user.username, user.enabled)}
+                            disabled={user.username === currentUsername}
+                          >
+                            {user.enabled ? <Block fontSize="small" /> : <CheckCircle fontSize="small" />}
+                          </IconButton>
+                        </span>
+                      </Tooltip>
+                      <Tooltip title="Reset Password">
+                        <span>
+                          <IconButton 
+                            size="small" 
+                            onClick={() => openResetPasswordModal(user.username)}
+                            disabled={!user.enabled || user.username === currentUsername}
+                          >
+                            <LockReset fontSize="small" />
+                          </IconButton>
+                        </span>
+                      </Tooltip>
                     </Box>
                   </TableCell>
                 </TableRow>
@@ -224,6 +274,38 @@ const UserList: React.FC = () => {
           <Button onClick={closeEditModal} disabled={saving}>Cancel</Button>
           <Button onClick={handleEditSubmit} variant="contained" disabled={saving}>
             {saving ? <CircularProgress size={20} /> : 'Save'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+      
+      <Dialog open={resetPasswordModalOpen} onClose={closeResetPasswordModal} maxWidth="sm" fullWidth>
+        <DialogTitle>Reset Password - {resetPasswordUser}</DialogTitle>
+        <DialogContent>
+          <TextField
+            label="New Temporary Password"
+            type={showTemporaryPassword ? 'text' : 'password'}
+            value={temporaryPassword}
+            onChange={(e) => setTemporaryPassword(e.target.value)}
+            fullWidth
+            sx={{ mt: 1 }}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    onClick={() => setShowTemporaryPassword(!showTemporaryPassword)}
+                    edge="end"
+                  >
+                    {showTemporaryPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              )
+            }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeResetPasswordModal} disabled={saving}>Cancel</Button>
+          <Button onClick={handleResetPassword} variant="contained" disabled={saving || !temporaryPassword.trim()}>
+            {saving ? <CircularProgress size={20} /> : 'Reset Password'}
           </Button>
         </DialogActions>
       </Dialog>
