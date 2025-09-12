@@ -9,6 +9,7 @@ const MegaBar: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [companyOpen, setCompanyOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
+  const [reportsOpen, setReportsOpen] = useState(false);
   const navigate = useNavigate();
   const { userRole } = useAuth();
 
@@ -16,6 +17,7 @@ const MegaBar: React.FC = () => {
     navigate(path);
     setCompanyOpen(false);
     setAdminOpen(false);
+    setReportsOpen(false);
     setSidebarOpen(false);
   };
   
@@ -35,6 +37,9 @@ const MegaBar: React.FC = () => {
     admin: [
       { label: 'Manage Users', path: '/admin/users' },
       { label: 'Create User', path: '/admin/users/create' }
+    ],
+    reports: [
+      { label: 'Invoice', path: '/reports/invoices' }
     ],
     main: [
       { label: 'Candidates', path: '/candidates', icon: <People /> },
@@ -104,12 +109,35 @@ const MegaBar: React.FC = () => {
         
         {menuItems.main.map(({ label, path, icon }) => 
           visibleMenuItems.includes(path) && (
-            <ListItem key={path} disablePadding>
-              <ListItemButton onClick={() => handleNavigate(path)}>
-                {icon}
-                <ListItemText primary={label} sx={{ ml: 2 }} />
-              </ListItemButton>
-            </ListItem>
+            label === 'Reports' ? (
+              <React.Fragment key={path}>
+                <ListItem disablePadding>
+                  <ListItemButton onClick={() => setReportsOpen(!reportsOpen)}>
+                    {icon}
+                    <ListItemText primary={label} sx={{ ml: 2 }} />
+                    {reportsOpen ? <ExpandLess /> : <ExpandMore />}
+                  </ListItemButton>
+                </ListItem>
+                <Collapse in={reportsOpen} timeout="auto" unmountOnExit>
+                  <List component="div" disablePadding>
+                    {menuItems.reports.map(({ label, path }) => (
+                      <ListItem key={path} disablePadding>
+                        <ListItemButton sx={{ pl: 4 }} onClick={() => handleNavigate(path)}>
+                          <ListItemText primary={label} />
+                        </ListItemButton>
+                      </ListItem>
+                    ))}
+                  </List>
+                </Collapse>
+              </React.Fragment>
+            ) : (
+              <ListItem key={path} disablePadding>
+                <ListItemButton onClick={() => handleNavigate(path)}>
+                  {icon}
+                  <ListItemText primary={label} sx={{ ml: 2 }} />
+                </ListItemButton>
+              </ListItem>
+            )
           )
         )}
         

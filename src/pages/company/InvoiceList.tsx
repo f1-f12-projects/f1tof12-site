@@ -165,7 +165,7 @@ const InvoiceList: React.FC = () => {
       const matchesStatus = statusFilter === 'all' || invoice.status === statusFilter;
       
       // Raised date filtering
-      const dateToCheck = invoice.issue_date || (invoice as any).raised_date;
+      const dateToCheck = invoice.raised_date || (invoice as any).raised_date;
       let matchesRaisedDate = true;
       if (dateToCheck && (dateFrom || dateTo)) {
         const invoiceDate = new Date(dateToCheck.split('T')[0]);
@@ -474,7 +474,7 @@ const InvoiceList: React.FC = () => {
                       </TableCell>
                       <TableCell sx={tableStyles.bodyCell}>
                         <Typography variant="body2" color="text.secondary">
-                          {formatDateTimeIST(invoice.issue_date)}
+                          {formatDateTimeIST(invoice.raised_date)}
                         </Typography>
                       </TableCell>
                       <TableCell sx={tableStyles.bodyCell}>

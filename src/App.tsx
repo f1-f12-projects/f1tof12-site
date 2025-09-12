@@ -18,6 +18,7 @@ import CreateUser from './pages/admin/CreateUser';
 import Login from './pages/Login';
 import ComingSoon from './pages/ComingSoon';
 import PageNotFound from './pages/PageNotFound';
+import InvoiceReport from './pages/reports/InvoiceReport';
 
 const HomePage: React.FC = () => (
   <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -52,6 +53,7 @@ const AppContent: React.FC = () => {
               <Route path="/recruiter" element={<ComingSoon />} />
               <Route path="/profiles" element={<ComingSoon />} />
               <Route path="/reports" element={<ComingSoon />} />
+              <Route path="/reports/invoices" element={<InvoiceReport />} />
               <Route path="/about" element={<ComingSoon />} />
               <Route path="/careers" element={<ComingSoon />} />
               <Route path="/contact" element={<ComingSoon />} />

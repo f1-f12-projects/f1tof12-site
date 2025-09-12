@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Container, Paper, Typography, TextField, Button, IconButton, InputAdornment } from '@mui/material';
+import { Box, Container, Paper, Typography, TextField, Button, IconButton, InputAdornment, CircularProgress } from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 import { authService } from '../services/authService';
@@ -40,6 +40,7 @@ const Login: React.FC = () => {
   const [showPasswords, setShowPasswords] = useState({ login: false, new: false, confirm: false });
   const [passwordChangeRequired, setPasswordChangeRequired] = useState(false);
   const [passwordData, setPasswordData] = useState({ new: '', confirm: '', error: '' });
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -63,6 +64,7 @@ const Login: React.FC = () => {
     setErrors(newErrors);
     
     if (!newErrors.username && !newErrors.password) {
+      setLoading(true);
       await handleApiResponse(
         () => authService.login({
           username: formData.username,
@@ -85,6 +87,7 @@ const Login: React.FC = () => {
           }
         }
       );
+      setLoading(false);
     }
   };
 
@@ -177,8 +180,8 @@ const Login: React.FC = () => {
                 )
               }}
             />
-            <Button type="submit" variant="contained" size="large" fullWidth sx={{ mt: 2 }}>
-              Login
+            <Button type="submit" variant="contained" size="large" fullWidth sx={{ mt: 2 }} disabled={loading}>
+              {loading ? <CircularProgress size={24} color="inherit" /> : 'Login'}
             </Button>
           </Box>
         )}

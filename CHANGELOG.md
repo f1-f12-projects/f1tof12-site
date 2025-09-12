@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.0] - 2025-09-13
+
+### Added
+- Monthly invoice report with bar chart visualization
+
+
+
 ## [1.1.2] - 2025-09-07
 
 ## Added
