@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Button, TextField, Paper, Typography } from '@mui/material';
+import { Box, Button, TextField, Paper, Typography, IconButton, InputAdornment } from '@mui/material';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { userService } from '../../services/userService';
 import { useAuth } from '../../context/AuthContext';
 import { handleApiResponse } from '../../utils/apiHandler';
@@ -16,6 +17,7 @@ const CreateUser: React.FC = () => {
     temporary_password: ''
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showPassword, setShowPassword] = useState(false);
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
@@ -81,12 +83,21 @@ const CreateUser: React.FC = () => {
               key={name}
               name={name}
               label={label}
-              type={type}
+              type={name === 'temporary_password' ? (showPassword ? 'text' : 'password') : type}
               value={formData[name as keyof typeof formData]}
               onChange={handleChange}
               fullWidth
               error={!!errors[name]}
               helperText={errors[name]}
+              InputProps={name === 'temporary_password' ? {
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                )
+              } : undefined}
               sx={{ 
                 mb: index === fields.length - 1 ? 3 : 2,
                 '& .MuiOutlinedInput-root.Mui-error .MuiOutlinedInput-notchedOutline': {
