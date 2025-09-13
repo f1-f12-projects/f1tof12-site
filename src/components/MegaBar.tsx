@@ -29,23 +29,21 @@ const MegaBar: React.FC = () => {
   const drawerWidth = 240;
 
   const menuItems = useMemo(() => ({
-    company: [
-      { label: 'Register New Company', path: '/company/register' },
-      { label: 'Show Companies', path: '/company/list' },
-      { label: 'SPOC', path: '/company/spoc' }
-    ],
     admin: [
       { label: 'Manage Users', path: '/admin/users' },
-      { label: 'Create User', path: '/admin/users/create' }
+      { label: 'Register New Company', path: '/company/register' },
+      { label: 'Show Companies', path: '/company/list' },
+      { label: 'Manage SPOC', path: '/company/spoc' }
     ],
     reports: [
       { label: 'Invoice', path: '/reports/invoices' }
     ],
     main: [
-      { label: 'Candidates', path: '/candidates', icon: <People /> },
-      { label: 'Interviews', path: '/interviews', icon: <Event /> },
+      { label: 'Requirements', path: '/requirements', icon: <People /> },
+      { label: 'Profiles', path: '/profiles', icon: <Event /> },
       { label: 'Reports', path: '/reports', icon: <Assessment /> },
-      { label: 'Finance', path: '/company/invoices', icon: <AccountBalance /> }
+      { label: 'Finance', path: '/company/invoices', icon: <AccountBalance /> },
+      { label: 'Admin', path: '/admin/users', icon: <AccountBalance /> }
     ]
   }), []);
 
@@ -84,29 +82,6 @@ const MegaBar: React.FC = () => {
         }}
       >
       <List sx={{ pt: 2 }}>
-        {visibleMenuItems.includes('/companies') && (
-          <>
-            <ListItem disablePadding>
-              <ListItemButton onClick={() => setCompanyOpen(!companyOpen)}>
-                <Business sx={{ mr: 2 }} />
-                <ListItemText primary="Company" />
-                {companyOpen ? <ExpandLess /> : <ExpandMore />}
-              </ListItemButton>
-            </ListItem>
-            <Collapse in={companyOpen} timeout="auto" unmountOnExit>
-              <List component="div" disablePadding>
-                {menuItems.company.map(({ label, path }) => (
-                  <ListItem key={path} disablePadding>
-                    <ListItemButton sx={{ pl: 4 }} onClick={() => handleNavigate(path)}>
-                      <ListItemText primary={label} />
-                    </ListItemButton>
-                  </ListItem>
-                ))}
-              </List>
-            </Collapse>
-          </>
-        )}
-        
         {menuItems.main.map(({ label, path, icon }) => 
           visibleMenuItems.includes(path) && (
             label === 'Reports' ? (

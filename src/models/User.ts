@@ -7,6 +7,7 @@ export interface User {
   status: string;
   created: string;
   enabled: boolean;
+  role?: string;
 }
 
 export interface UserResponse {

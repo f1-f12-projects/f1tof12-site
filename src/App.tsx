@@ -31,6 +31,31 @@ const HomePage: React.FC = () => (
   </Container>
 );
 
+const routes = {
+  // Generic Routes
+  '/': HomePage,
+  '/login': Login,
+
+  // Company Routes
+  '/company/register': RegisterCompany,
+  '/company/list': CompanyList,
+  '/company/spoc': SPOC,
+
+  // Finance Related Routes
+  '/company/invoices': InvoiceList,
+
+  // Admin Routes
+  '/admin/users': UserList,
+  '/admin/users/create': CreateUser,
+  '/reports/invoices': InvoiceReport,
+};
+
+const comingSoonRoutes = [
+  '/about', '/careers', '/contact', '/consulting', 
+  '/development', '/support', '/privacy', '/terms',
+  '/requirements', '/profiles'
+];
+
 const AppContent: React.FC = () => {
   const { isAuthenticated } = useAuth();
   
@@ -42,26 +67,12 @@ const AppContent: React.FC = () => {
           
           <Box sx={{ flex: 1 }}>
             <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/company/register" element={<RegisterCompany />} />
-              <Route path="/company/list" element={<CompanyList />} />
-              <Route path="/company/spoc" element={<SPOC />} />
-              <Route path="/company/invoices" element={<InvoiceList />} />
-              <Route path="/admin/users" element={<UserList />} />
-              <Route path="/admin/users/create" element={<CreateUser />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/recruiter" element={<ComingSoon />} />
-              <Route path="/profiles" element={<ComingSoon />} />
-              <Route path="/reports" element={<ComingSoon />} />
-              <Route path="/reports/invoices" element={<InvoiceReport />} />
-              <Route path="/about" element={<ComingSoon />} />
-              <Route path="/careers" element={<ComingSoon />} />
-              <Route path="/contact" element={<ComingSoon />} />
-              <Route path="/consulting" element={<ComingSoon />} />
-              <Route path="/development" element={<ComingSoon />} />
-              <Route path="/support" element={<ComingSoon />} />
-              <Route path="/privacy" element={<ComingSoon />} />
-              <Route path="/terms" element={<ComingSoon />} />
+              {Object.entries(routes).map(([path, Component]) => (
+                <Route key={path} path={path} element={<Component />} />
+              ))}
+              {comingSoonRoutes.map(path => (
+                <Route key={path} path={path} element={<ComingSoon />} />
+              ))}
               <Route path="*" element={<PageNotFound />} />
             </Routes>
           </Box>

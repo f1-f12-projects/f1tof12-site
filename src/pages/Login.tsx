@@ -41,6 +41,7 @@ const Login: React.FC = () => {
   const [passwordChangeRequired, setPasswordChangeRequired] = useState(false);
   const [passwordData, setPasswordData] = useState({ new: '', confirm: '', error: '' });
   const [loading, setLoading] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -103,6 +104,7 @@ const Login: React.FC = () => {
       setPasswordData(prev => ({ ...prev, error: 'Passwords do not match' }));
       return;
     }
+    setChangingPassword(true);
     await handleApiResponse(
       () => authService.changePassword({
         username: formData.username,
@@ -115,6 +117,7 @@ const Login: React.FC = () => {
         setPasswordData({ new: '', confirm: '', error: '' });
       }
     );
+    setChangingPassword(false);
   };
 
   return (
@@ -141,8 +144,8 @@ const Login: React.FC = () => {
                 helperText={field === 'confirm' ? passwordData.error : undefined}
               />
             ))}
-            <Button type="submit" variant="contained" size="large" fullWidth sx={{ mt: 2 }}>
-              Change Password
+            <Button type="submit" variant="contained" size="large" fullWidth sx={{ mt: 2 }} disabled={changingPassword}>
+              {changingPassword ? <CircularProgress size={24} color="inherit" /> : 'Change Password'}
             </Button>
           </Box>
         ) : (

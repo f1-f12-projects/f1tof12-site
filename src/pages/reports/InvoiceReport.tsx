@@ -20,6 +20,7 @@ interface MonthlyData {
 const InvoiceReport: React.FC = () => {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [selectedCompany, setSelectedCompany] = useState<string>('All');
   const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([]);
 
   useEffect(() => {
@@ -30,7 +31,7 @@ const InvoiceReport: React.FC = () => {
     if (invoices.length > 0) {
       generateMonthlyData();
     }
-  }, [invoices, selectedYear]);
+  }, [invoices, selectedYear, selectedCompany]);
 
   const loadInvoices = async () => {
     await handleApiResponse(
@@ -55,10 +56,10 @@ const InvoiceReport: React.FC = () => {
     }));
 
     invoices.forEach(invoice => {
-      console.log ("Invoice: ", invoice);
       const raisedDate = new Date(invoice.raised_date);
       
-      if (raisedDate.getFullYear() === selectedYear) {
+      if (raisedDate.getFullYear() === selectedYear && 
+          (selectedCompany === 'All' || invoice.company_name === selectedCompany)) {
         const monthIndex = raisedDate.getMonth();
         data[monthIndex][invoice.status]++;
         data[monthIndex][`${invoice.status}Amount`] += invoice.amount;
@@ -77,16 +78,22 @@ const InvoiceReport: React.FC = () => {
     return Array.from(years).sort((a, b) => b - a);
   };
 
+  const getAvailableCompanies = () => {
+    const companies = new Set<string>();
+    invoices.forEach(invoice => companies.add(invoice.company_name));
+    return ['All', ...Array.from(companies).sort()];
+  };
+
   const totalPaid = monthlyData.reduce((sum, data) => sum + data.paidAmount, 0);
   const totalPending = monthlyData.reduce((sum, data) => sum + data.pendingAmount, 0);
   const totalOverdue = monthlyData.reduce((sum, data) => sum + data.overdueAmount, 0);
   const totalCancelled = monthlyData.reduce((sum, data) => sum + data.cancelledAmount, 0);
 
   return (
-    <Container maxWidth="xl" sx={{ py: 4 }}>
+    <Container maxWidth="xl" sx={{ py: 4, mt: 8 }}>
       <PageHeader title="Invoice Report" />
       
-      <Box sx={{ mb: 3, display: 'flex', gap: 2 }}>
+      <Box sx={{ mb: 3, mt: 3, display: 'flex', gap: 2, alignItems: 'center' }}>
         <FormControl sx={{ minWidth: 120 }}>
           <InputLabel>Year</InputLabel>
           <Select
@@ -99,7 +106,19 @@ const InvoiceReport: React.FC = () => {
             ))}
           </Select>
         </FormControl>
-        <Typography variant="body2" sx={{ alignSelf: 'center', color: 'text.secondary' }}>
+        <FormControl sx={{ minWidth: 200 }}>
+          <InputLabel>Company</InputLabel>
+          <Select
+            value={selectedCompany}
+            label="Company"
+            onChange={(e) => setSelectedCompany(e.target.value)}
+          >
+            {getAvailableCompanies().map(company => (
+              <MenuItem key={company} value={company}>{company}</MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
           Showing invoice status trends by month (based on raised_date)
         </Typography>
       </Box>

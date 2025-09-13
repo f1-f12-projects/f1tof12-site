@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Button, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Select, MenuItem, FormControl, InputLabel, IconButton, Tooltip, InputAdornment } from '@mui/material';
-import { Edit, Block, CheckCircle, LockReset, Visibility, VisibilityOff } from '@mui/icons-material';
+import { Box, Button, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Select, MenuItem, FormControl, InputLabel, IconButton, Tooltip, InputAdornment, TableSortLabel } from '@mui/material';
+import { Edit, Block, CheckCircle, LockReset, Visibility, VisibilityOff, Refresh } from '@mui/icons-material';
 import { User } from '../../models/User';
 import { userService } from '../../services/userService';
 import { useAuth } from '../../context/AuthContext';
@@ -15,7 +15,7 @@ const UserList: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [editForm, setEditForm] = useState({ given_name: '', family_name: '', email: '', phone_number: '' });
+  const [editForm, setEditForm] = useState({ given_name: '', family_name: '', email: '', phone_number: '', role: '' });
   const [saving, setSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'enabled' | 'disabled' | 'all'>('enabled');
@@ -23,6 +23,8 @@ const UserList: React.FC = () => {
   const [resetPasswordUser, setResetPasswordUser] = useState<string>('');
   const [temporaryPassword, setTemporaryPassword] = useState('');
   const [showTemporaryPassword, setShowTemporaryPassword] = useState(false);
+  const [sortField, setSortField] = useState<keyof User>('username');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const { isAuthenticated, username: currentUsername } = useAuth();
   const navigate = useNavigate();
 
@@ -89,7 +91,8 @@ const UserList: React.FC = () => {
       given_name: user.given_name || '',
       family_name: user.family_name || '',
       email: user.email,
-      phone_number: user.phone_number
+      phone_number: user.phone_number,
+      role: user.role || 'recruiter'
     });
     setEditModalOpen(true);
   };
@@ -97,7 +100,7 @@ const UserList: React.FC = () => {
   const closeEditModal = () => {
     setEditModalOpen(false);
     setEditingUser(null);
-    setEditForm({ given_name: '', family_name: '', email: '', phone_number: '' });
+    setEditForm({ given_name: '', family_name: '', email: '', phone_number: '', role: '' });
     setSaving(false);
   };
 
@@ -115,6 +118,7 @@ const UserList: React.FC = () => {
     if (editForm.family_name !== (editingUser.family_name || '')) updates.family_name = editForm.family_name;
     if (editForm.email !== editingUser.email) updates.email = editForm.email;
     if (editForm.phone_number !== editingUser.phone_number) updates.phone_number = editForm.phone_number;
+    if (editForm.role !== (editingUser.role || 'recruiter')) updates.role = editForm.role;
     
     await handleApiResponse(
       () => userService.updateUser(editingUser.username, updates),
@@ -126,8 +130,14 @@ const UserList: React.FC = () => {
     setSaving(false);
   };
 
+  const handleSort = (field: keyof User) => {
+    const isAsc = sortField === field && sortDirection === 'asc';
+    setSortDirection(isAsc ? 'desc' : 'asc');
+    setSortField(field);
+  };
+
   const filteredUsers = useMemo(() => {
-    return users.filter(user => {
+    const filtered = users.filter(user => {
       const matchesSearch = searchTerm === '' || 
         user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -140,7 +150,14 @@ const UserList: React.FC = () => {
       
       return matchesSearch && matchesStatus;
     });
-  }, [users, searchTerm, statusFilter]);
+
+    return filtered.sort((a, b) => {
+      const aVal = a[sortField] || '';
+      const bVal = b[sortField] || '';
+      const comparison = aVal.toString().localeCompare(bVal.toString());
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [users, searchTerm, statusFilter, sortField, sortDirection]);
 
   return (
     <Box sx={{ p: 3 }}>
@@ -167,26 +184,96 @@ const UserList: React.FC = () => {
             </Select>
           </FormControl>
         </Box>
-        <Button variant="contained" onClick={() => navigate('/admin/users/create')}>Create User</Button>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button variant="outlined" onClick={loadUsers} disabled={loading}>
+            <Refresh sx={{ mr: 1 }} />Refresh
+          </Button>
+          <Button variant="contained" onClick={() => navigate('/admin/users/create')}>Create User</Button>
+        </Box>
       </Box>
       <TableContainer component={Paper} sx={tableStyles.container}>
         <Table>
           <TableHead>
             <TableRow sx={tableStyles.headerRow}>
-              <TableCell sx={tableStyles.headerCell}>Username</TableCell>
-              <TableCell sx={tableStyles.headerCell}>Given Name</TableCell>
-              <TableCell sx={tableStyles.headerCell}>Last Name</TableCell>
-              <TableCell sx={tableStyles.headerCell}>Email</TableCell>
-              <TableCell sx={tableStyles.headerCell}>Phone</TableCell>
-              <TableCell sx={tableStyles.headerCell}>Created</TableCell>
-              <TableCell sx={tableStyles.headerCell}>Status</TableCell>
+              <TableCell sx={tableStyles.headerCell}>
+                <TableSortLabel
+                  active={sortField === 'username'}
+                  direction={sortField === 'username' ? sortDirection : 'asc'}
+                  onClick={() => handleSort('username')}
+                >
+                  Username
+                </TableSortLabel>
+              </TableCell>
+              <TableCell sx={tableStyles.headerCell}>
+                <TableSortLabel
+                  active={sortField === 'given_name'}
+                  direction={sortField === 'given_name' ? sortDirection : 'asc'}
+                  onClick={() => handleSort('given_name')}
+                >
+                  Given Name
+                </TableSortLabel>
+              </TableCell>
+              <TableCell sx={tableStyles.headerCell}>
+                <TableSortLabel
+                  active={sortField === 'family_name'}
+                  direction={sortField === 'family_name' ? sortDirection : 'asc'}
+                  onClick={() => handleSort('family_name')}
+                >
+                  Last Name
+                </TableSortLabel>
+              </TableCell>
+              <TableCell sx={tableStyles.headerCell}>
+                <TableSortLabel
+                  active={sortField === 'email'}
+                  direction={sortField === 'email' ? sortDirection : 'asc'}
+                  onClick={() => handleSort('email')}
+                >
+                  Email
+                </TableSortLabel>
+              </TableCell>
+              <TableCell sx={tableStyles.headerCell}>
+                <TableSortLabel
+                  active={sortField === 'phone_number'}
+                  direction={sortField === 'phone_number' ? sortDirection : 'asc'}
+                  onClick={() => handleSort('phone_number')}
+                >
+                  Phone
+                </TableSortLabel>
+              </TableCell>
+              <TableCell sx={tableStyles.headerCell}>
+                <TableSortLabel
+                  active={sortField === 'role'}
+                  direction={sortField === 'role' ? sortDirection : 'asc'}
+                  onClick={() => handleSort('role')}
+                >
+                  Role
+                </TableSortLabel>
+              </TableCell>
+              <TableCell sx={tableStyles.headerCell}>
+                <TableSortLabel
+                  active={sortField === 'created'}
+                  direction={sortField === 'created' ? sortDirection : 'asc'}
+                  onClick={() => handleSort('created')}
+                >
+                  Created
+                </TableSortLabel>
+              </TableCell>
+              <TableCell sx={tableStyles.headerCell}>
+                <TableSortLabel
+                  active={sortField === 'status'}
+                  direction={sortField === 'status' ? sortDirection : 'asc'}
+                  onClick={() => handleSort('status')}
+                >
+                  Status
+                </TableSortLabel>
+              </TableCell>
               <TableCell sx={tableStyles.headerCell}>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={8} sx={{ textAlign: 'center', py: 4 }}>
+                <TableCell colSpan={9} sx={{ textAlign: 'center', py: 4 }}>
                   <CircularProgress />
                 </TableCell>
               </TableRow>
@@ -198,11 +285,26 @@ const UserList: React.FC = () => {
                   <TableCell sx={tableStyles.bodyCell}>{user.family_name || '-'}</TableCell>
                   <TableCell sx={tableStyles.bodyCell}>{user.email}</TableCell>
                   <TableCell sx={tableStyles.bodyCell}>{user.phone_number}</TableCell>
+                  <TableCell sx={tableStyles.bodyCell}>{user.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : '-'}</TableCell>
                   <TableCell sx={tableStyles.bodyCell}>{new Date(user.created).toLocaleDateString()}</TableCell>
                   <TableCell sx={tableStyles.bodyCell}>
                     <Chip 
-                      label={user.enabled ? 'Enabled' : 'Disabled'} 
-                      color={user.enabled ? 'success' : 'default'} 
+                      label={user.status === 'CONFIRMED' ? 'Confirmed' : 
+                             user.status === 'UNCONFIRMED' ? 'Unconfirmed' :
+                             user.status === 'FORCE_CHANGE_PASSWORD' ? 'Password Reset Required' :
+                             user.status === 'RESET_REQUIRED' ? 'Reset Required' :
+                             user.status === 'ARCHIVED' ? 'Archived' :
+                             user.status === 'COMPROMISED' ? 'Compromised' :
+                             user.status === 'UNKNOWN' ? 'Unknown' :
+                             user.status || 'Unknown'}
+                      color={user.status === 'CONFIRMED' ? 'success' : 
+                             user.status === 'UNCONFIRMED' ? 'warning' :
+                             user.status === 'FORCE_CHANGE_PASSWORD' ? 'info' :
+                             user.status === 'RESET_REQUIRED' ? 'warning' :
+                             user.status === 'ARCHIVED' ? 'default' :
+                             user.status === 'COMPROMISED' ? 'error' :
+                             'default'}
+                      size="small"
                     />
                   </TableCell>
                   <TableCell sx={tableStyles.bodyCell}>
@@ -212,7 +314,7 @@ const UserList: React.FC = () => {
                           <IconButton 
                             size="small" 
                             onClick={() => openEditModal(user)}
-                            disabled={!user.enabled}
+                            disabled={!user.enabled || user.username === currentUsername}
                           >
                             <Edit fontSize="small" />
                           </IconButton>
@@ -268,6 +370,18 @@ const UserList: React.FC = () => {
                 fullWidth
               />
             ))}
+            <FormControl fullWidth>
+              <InputLabel>Role</InputLabel>
+              <Select
+                value={editForm.role}
+                label="Role"
+                onChange={(e) => setEditForm(prev => ({ ...prev, role: e.target.value }))}
+              >
+                <MenuItem value="recruiter">Recruiter</MenuItem>
+                <MenuItem value="lead">Lead</MenuItem>
+                <MenuItem value="finance">Finance</MenuItem>
+              </Select>
+            </FormControl>
           </Box>
         </DialogContent>
         <DialogActions>

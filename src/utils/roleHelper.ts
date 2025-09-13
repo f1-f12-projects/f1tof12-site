@@ -1,24 +1,34 @@
 import { UserRole, USER_ROLES } from '../types/roles';
 
+const basePermissions = {
+  [USER_ROLES.RECRUITER]: ['/profiles'],
+  [USER_ROLES.LEAD]: ['/profiles', '/requirements'],
+  [USER_ROLES.FINANCE]: ['/company/invoices']
+};
+
+const rolePermissions: Record<UserRole, string[]> = {
+  ...basePermissions,
+  [USER_ROLES.MANAGER]: [
+    '/company', '/report', '/admin',
+    ...basePermissions[USER_ROLES.RECRUITER],
+    ...basePermissions[USER_ROLES.LEAD],
+    ...basePermissions[USER_ROLES.FINANCE]
+  ]
+};
+
 export const roleHelper = {
   canAccessPage: (userRole: UserRole, page: string): boolean => {
-    const pagePermissions: Record<string, UserRole[]> = {
-      '/companies': [USER_ROLES.MANAGER],
-      '/candidates': [USER_ROLES.RECRUITER, USER_ROLES.LEAD, USER_ROLES.MANAGER],
-      '/interviews': [USER_ROLES.RECRUITER, USER_ROLES.LEAD, USER_ROLES.MANAGER],
-      '/reports': [USER_ROLES.LEAD, USER_ROLES.MANAGER, USER_ROLES.FINANCE],
-      '/company/invoices': [USER_ROLES.FINANCE, USER_ROLES.MANAGER],
-      '/admin': [USER_ROLES.MANAGER],
-    };
-
-    return pagePermissions[page]?.includes(userRole) ?? false;
+    const permissions = rolePermissions[userRole] || [];
+    return permissions.some(permission => 
+      page === permission || page.startsWith(permission + '/')
+    );
   },
 
   getDefaultRoute: (userRole: UserRole): string => {
     const defaultRoutes: Record<UserRole, string> = {
-      [USER_ROLES.RECRUITER]: '/candidates',
-      [USER_ROLES.LEAD]: '/interviews',
-      [USER_ROLES.MANAGER]: '/reports',
+      [USER_ROLES.RECRUITER]: '/profiles',
+      [USER_ROLES.LEAD]: '/requirements',
+      [USER_ROLES.MANAGER]: '/admin/users',
       [USER_ROLES.FINANCE]: '/company/invoices',
     };
 
@@ -26,13 +36,6 @@ export const roleHelper = {
   },
 
   getVisibleMenuItems: (userRole: UserRole): string[] => {
-    const menuItems: Record<UserRole, string[]> = {
-      [USER_ROLES.RECRUITER]: ['/candidates', '/interviews'],
-      [USER_ROLES.LEAD]: ['/candidates', '/interviews'],
-      [USER_ROLES.MANAGER]: ['/companies', '/candidates', '/interviews', '/reports', '/company/invoices', '/admin'],
-      [USER_ROLES.FINANCE]: ['/company/invoices'],
-    };
-
-    return menuItems[userRole] || [];
+    return rolePermissions[userRole] || [];
   },
 };

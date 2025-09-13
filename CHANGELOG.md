@@ -2,12 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.3.0] - 2025-09-13
+## [1.1.3] - 2024-12-19
 
 ### Added
-- Monthly invoice report with bar chart visualization
+- Invoice report functionality with comprehensive reporting features
+- Password visibility toggle (peek view) for login forms
+- Reset password functionality for admin users
+- PageNotFound component for better error handling
+- Enhanced invoice management with improved validation
+- Version information display component
 
+### Enhanced
+- Updated API endpoints for better server compatibility
+- Improved role-based access control
+- Enhanced invoice list functionality
+- Better error handling and user feedback
 
+### Fixed
+- Build issues resolved
+- API endpoint compatibility issues
+- Refresh token handling improvements
 
 ## [1.1.2] - 2025-09-07
 
