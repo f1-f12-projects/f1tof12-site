@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Container, Paper, Typography, TextField, Button, IconButton, InputAdornment, CircularProgress } from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
@@ -34,6 +34,7 @@ const PasswordField = ({ label, value, onChange, show, onToggle, error, helperTe
 const Login: React.FC = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const isMounted = useRef(true);
   
   const [formData, setFormData] = useState({ username: '', password: '' });
   const [errors, setErrors] = useState({ username: '', password: '' });
@@ -42,6 +43,10 @@ const Login: React.FC = () => {
   const [passwordData, setPasswordData] = useState({ new: '', confirm: '', error: '' });
   const [loading, setLoading] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
+
+  useEffect(() => {
+    return () => { isMounted.current = false; };
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -72,6 +77,7 @@ const Login: React.FC = () => {
           password: formData.password
         }),
         (data: any) => {
+          if (!isMounted.current) return;
           if (data.access_token) {
             login(formData.username, data.access_token, data.role);
             navigate(roleHelper.getDefaultRoute(data.role));
@@ -80,6 +86,7 @@ const Login: React.FC = () => {
           }
         },
         (error: any) => {
+          if (!isMounted.current) return;
           if (error.detail?.error === 'PASSWORD_CHANGE_REQUIRED') {
             setPasswordChangeRequired(true);
             alert.info('Password change required. Please set a new password.');
@@ -88,7 +95,7 @@ const Login: React.FC = () => {
           }
         }
       );
-      setLoading(false);
+      if (isMounted.current) setLoading(false);
     }
   };
 
@@ -112,12 +119,13 @@ const Login: React.FC = () => {
         new_password: passwordData.new
       }),
       () => {
+        if (!isMounted.current) return;
         setPasswordChangeRequired(false);
         setFormData({ username: '', password: '' });
         setPasswordData({ new: '', confirm: '', error: '' });
       }
     );
-    setChangingPassword(false);
+    if (isMounted.current) setChangingPassword(false);
   };
 
   return (

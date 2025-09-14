@@ -9,7 +9,7 @@ const basePermissions = {
 const rolePermissions: Record<UserRole, string[]> = {
   ...basePermissions,
   [USER_ROLES.MANAGER]: [
-    '/company', '/report', '/admin',
+    '/company', '/reports', '/admin',
     ...basePermissions[USER_ROLES.RECRUITER],
     ...basePermissions[USER_ROLES.LEAD],
     ...basePermissions[USER_ROLES.FINANCE]

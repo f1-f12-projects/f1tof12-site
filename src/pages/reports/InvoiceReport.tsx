@@ -19,13 +19,20 @@ interface MonthlyData {
 
 const InvoiceReport: React.FC = () => {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [selectedYear, setSelectedYear] = useState<number | ''>('');
   const [selectedCompany, setSelectedCompany] = useState<string>('All');
   const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([]);
 
   useEffect(() => {
     loadInvoices();
   }, []);
+
+  useEffect(() => {
+    if (invoices.length > 0 && selectedYear === '') {
+      const availableYears = getAvailableYears();
+      setSelectedYear(availableYears[0] || new Date().getFullYear());
+    }
+  }, [invoices, selectedYear]);
 
   useEffect(() => {
     if (invoices.length > 0) {

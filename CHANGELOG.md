@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0] - 2025-01-03
+
+### Added
+- Cache system for selective data storage during login
+- Company, Invoice, SPOC information caching with automatic invalidation
+- Memory leak prevention in Login component
+- Cache configuration with TTL and persistence options
+
+### Enhanced
+- AuthContext now supports cache data during login/logout
+- Company service with intelligent cache management
+- Login component with proper cleanup to prevent state updates on unmounted components
+
+### Fixed
+- MUI Select out-of-range value warning in Invoice Report
+- Memory leak warning in Login component
+- TypeScript errors in cache service
+
 ## [1.1.3] - 2024-12-19
 
 ### Added

@@ -1,17 +1,20 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { setRefreshTokenFunction } from '../services/apiService';
 import { UserRole } from '../types/roles';
+import { cacheService } from '../services/cacheService';
 
 interface AuthContextType {
   username: string | null;
   authToken: string | null;
   userRole: UserRole | null;
-  login: (username: string, token: string, role: UserRole, refreshToken?: string) => void;
+  login: (username: string, token: string, role: UserRole, refreshToken?: string, cacheData?: Record<string, any>) => void;
   logout: () => void;
   isAuthenticated: boolean;
   checkAuthentication: () => Promise<boolean>;
   handleAuthError: () => void;
   refreshAccessToken: () => Promise<boolean>;
+  cacheData: (key: string, data: any) => void;
+  getCachedData: (key: string) => any;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -55,7 +58,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [refreshToken, setRefreshToken] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const login = (username: string, token: string, role: UserRole, refreshToken?: string) => {
+  const login = (username: string, token: string, role: UserRole, refreshToken?: string, cacheData?: Record<string, any>) => {
     setUsername(username);
     setAuthToken(token);
     setUserRole(role);
@@ -64,6 +67,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     localStorage.setItem('username', username);
     localStorage.setItem('userRole', role);
     if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
+    
+    if (cacheData) {
+      Object.entries(cacheData).forEach(([key, data]) => {
+        cacheService.set(key, data);
+      });
+    }
   };
 
   const logout = () => {
@@ -75,6 +84,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     localStorage.removeItem('username');
     localStorage.removeItem('userRole');
     localStorage.removeItem('refreshToken');
+    cacheService.clear();
   };
 
   const refreshAccessToken = async (): Promise<boolean> => {
@@ -156,10 +166,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return true;
   };
 
+  const cacheData = (key: string, data: any) => {
+    cacheService.set(key, data);
+  };
+
+  const getCachedData = (key: string) => {
+    return cacheService.get(key);
+  };
+
   const isAuthenticated = !!username && !!authToken && !isTokenExpired(authToken || '');
 
   return (
-    <AuthContext.Provider value={{ username, authToken, userRole, login, logout, isAuthenticated, checkAuthentication, handleAuthError, refreshAccessToken }}>
+    <AuthContext.Provider value={{ username, authToken, userRole, login, logout, isAuthenticated, checkAuthentication, handleAuthError, refreshAccessToken, cacheData, getCachedData }}>
       {children}
     </AuthContext.Provider>
   );
