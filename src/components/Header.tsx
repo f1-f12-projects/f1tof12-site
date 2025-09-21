@@ -26,7 +26,7 @@ const Header: React.FC = () => {
 
   const handleHealthCheck = async () => {
     try {
-      await apiService.get('/health');
+      await apiService.get(process.env.REACT_APP_HEALTH_CHECK_ENDPOINT!);
       alert.success('API is working!');
     } catch (error) {
       alert.error('API is not reachable');
