@@ -2,7 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.2.0] - 2025-01-03
+## [1.2.1] - 2025-09-21
+
+### Fixed
+- Minor bug fixes and improvements on alerts
+
+## [1.2.0] - 2025-09-21
 
 ### Added
 - Cache system for selective data storage during login
@@ -20,7 +25,7 @@ All notable changes to this project will be documented in this file.
 - Memory leak warning in Login component
 - TypeScript errors in cache service
 
-## [1.1.3] - 2024-12-19
+## [1.1.3] - 2024-09-19
 
 ### Added
 - Invoice report functionality with comprehensive reporting features

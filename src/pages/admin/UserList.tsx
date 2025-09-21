@@ -80,9 +80,12 @@ const UserList: React.FC = () => {
       () => {
         loadUsers();
         closeResetPasswordModal();
+        setSaving(false);
+      },
+      () => {
+        setSaving(false);
       }
     );
-    setSaving(false);
   };
 
   const openEditModal = (user: User) => {
@@ -125,9 +128,12 @@ const UserList: React.FC = () => {
       () => {
         loadUsers();
         closeEditModal();
+        setSaving(false);
+      },
+      () => {
+        setSaving(false);
       }
     );
-    setSaving(false);
   };
 
   const handleSort = (field: keyof User) => {

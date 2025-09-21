@@ -7,7 +7,14 @@ interface AlertState {
   severity: AlertColor;
 }
 
-let setAlertState: React.Dispatch<React.SetStateAction<AlertState>> | null = null;
+interface AlertContextType {
+  showAlert: (message: string, severity?: AlertColor) => void;
+}
+
+const AlertContext = React.createContext<AlertContextType | null>(null);
+
+// Global alert instance
+let globalShowAlert: ((message: string, severity?: AlertColor) => void) | null = null;
 
 export const AlertProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [alert, setAlert] = React.useState<AlertState>({
@@ -16,16 +23,24 @@ export const AlertProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     severity: 'info'
   });
 
-  React.useEffect(() => {
-    setAlertState = setAlert;
+  const showAlert = React.useCallback((message: string, severity: AlertColor = 'info') => {
+    setAlert({ open: true, message, severity });
   }, []);
+
+  // Set global reference
+  React.useEffect(() => {
+    globalShowAlert = showAlert;
+    return () => {
+      globalShowAlert = null;
+    };
+  }, [showAlert]);
 
   const handleClose = () => {
     setAlert(prev => ({ ...prev, open: false }));
   };
 
   return (
-    <>
+    <AlertContext.Provider value={{ showAlert }}>
       {children}
       <Snackbar
         open={alert.open}
@@ -45,13 +60,23 @@ export const AlertProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           {alert.message}
         </Alert>
       </Snackbar>
-    </>
+    </AlertContext.Provider>
   );
 };
 
+const useAlert = () => {
+  const context = React.useContext(AlertContext);
+  if (!context) {
+    throw new Error('useAlert must be used within AlertProvider');
+  }
+  return context;
+};
+
 export const showAlert = (message: string, severity: AlertColor = 'info') => {
-  if (setAlertState) {
-    setAlertState({ open: true, message, severity });
+  if (globalShowAlert) {
+    globalShowAlert(message, severity);
+  } else {
+    console.warn('AlertProvider not found. Make sure to wrap your app with AlertProvider.');
   }
 };
 
@@ -61,3 +86,5 @@ export const alert = {
   warning: (message: string) => showAlert(message, 'warning'),
   info: (message: string) => showAlert(message, 'info')
 };
+
+export { useAlert };

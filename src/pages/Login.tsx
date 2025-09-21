@@ -84,6 +84,7 @@ const Login: React.FC = () => {
           } else {
             setErrors({ username: '', password: 'Invalid credentials' });
           }
+          setLoading(false);
         },
         (error: any) => {
           if (!isMounted.current) return;
@@ -93,9 +94,9 @@ const Login: React.FC = () => {
           } else {
             alert.error('Login failed. Please check your credentials.');
           }
+          setLoading(false);
         }
       );
-      if (isMounted.current) setLoading(false);
     }
   };
 
@@ -123,9 +124,13 @@ const Login: React.FC = () => {
         setPasswordChangeRequired(false);
         setFormData({ username: '', password: '' });
         setPasswordData({ new: '', confirm: '', error: '' });
+        setChangingPassword(false);
+      },
+      () => {
+        if (!isMounted.current) return;
+        setChangingPassword(false);
       }
     );
-    if (isMounted.current) setChangingPassword(false);
   };
 
   return (
