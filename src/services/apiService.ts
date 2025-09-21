@@ -9,6 +9,14 @@ export const setRefreshTokenFunction = (fn: () => Promise<boolean>) => {
 const apiCall = async <T>(method: string, endpoint: string, body?: any): Promise<T> => {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   
+  // Add CloudFront secret for all endpoints except login (production only)
+  if (process.env.REACT_APP_CLOUDFRONT_SECRET) {
+    headers['x-cloudfront-secret'] = process.env.REACT_APP_CLOUDFRONT_SECRET;
+  }
+  
+  // Add custom origin header
+  headers['x-origin'] = window.location.origin;
+  
   // Add Bearer token for all endpoints except login
   if (!endpoint.includes('/login')) {
     const token = localStorage.getItem('authToken');
