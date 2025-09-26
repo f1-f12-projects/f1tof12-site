@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 - Added Requirements page
 - When Manager logs in, it will re-direct to Requirements page
+- Added Assign Recuiter to the requirement
 
 ### Fixed
 - Minor bug fixes and improvements on alerts

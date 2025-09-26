@@ -52,6 +52,10 @@ const apiCall = async <T>(method: string, endpoint: string, body?: any): Promise
   const response = await fetch(`${BASE_URL}${endpoint}`, config);
   
   if (!response.ok) {
+    if (response.status === 401) {
+      window.location.href = '/login';
+      throw new Error('Authentication failed. Please try logging in again.');
+    }
     const errorData = await response.json().catch(() => ({}));
     const error = new Error(`HTTP ${response.status}: ${errorData.detail || errorData.message || response.statusText}`);
     (error as any).status = response.status;

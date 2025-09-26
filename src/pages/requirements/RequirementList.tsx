@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Container, Paper, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Box, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Button, Chip, Avatar, Stack, Card, ToggleButton, ToggleButtonGroup, CircularProgress, MenuItem, Checkbox, TablePagination } from '@mui/material';
+import { Container, Paper, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Box, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Button, Chip, Avatar, Stack, Card, ToggleButton, ToggleButtonGroup, CircularProgress, MenuItem, Checkbox, TablePagination, FormControlLabel, Radio } from '@mui/material';
 import { Search, Assignment, Clear, Visibility, PersonAdd } from '@mui/icons-material';
 import RequirementViewDialog from '../../components/RequirementViewDialog';
 import { Requirement } from '../../models/Requirement';
@@ -20,6 +20,7 @@ const RequirementList: React.FC = () => {
   const { checkAuthentication } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
+  const [showActiveOnly, setShowActiveOnly] = useState(false);
   const [requirements, setRequirements] = useState<Requirement[]>([]);
   const [statuses, setStatuses] = useState<RequirementStatus[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -27,6 +28,7 @@ const RequirementList: React.FC = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
   const [loading, setLoading] = useState(false);
+  const [assignLoading, setAssignLoading] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
   const [viewRequirement, setViewRequirement] = useState<Requirement | null>(null);
@@ -72,7 +74,9 @@ const RequirementList: React.FC = () => {
           () => userService.getUsers(),
           (response) => {
             if (!isMounted) return;
-            setUsers(response.users || []);
+            const usersArray = Array.isArray(response) ? response : (response.users || []);
+            const filteredUsers = usersArray.filter(user => user.role?.toLowerCase() !== 'finance');
+            setUsers(filteredUsers);
           },
           () => alert.error('Failed to load users')
         );
@@ -80,7 +84,6 @@ const RequirementList: React.FC = () => {
 
       loadRequirements();
       loadUsers();
-      
     };
     
     initializeAuth();
@@ -96,8 +99,9 @@ const RequirementList: React.FC = () => {
       const matchesSearch = (requirement.company_name || '').toLowerCase().includes(searchTermLower) || 
                            (requirement.key_skill || '').toLowerCase().includes(searchTermLower);
       const matchesStatus = statusFilter.length === 0 || (requirement.status_id && statusFilter.includes(requirement.status_id.toString()));
-      return matchesSearch && matchesStatus;
-    }), [requirements, searchTerm, statusFilter]);
+      const matchesActive = !showActiveOnly || (requirement.status_id !== 9 && requirement.status_id !== 10);
+      return matchesSearch && matchesStatus && matchesActive;
+    }), [requirements, searchTerm, statusFilter, showActiveOnly]);
 
   const paginatedRequirements = useMemo(() => 
     filteredRequirements.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage), 
@@ -108,7 +112,7 @@ const RequirementList: React.FC = () => {
     setViewOpen(true);
   };
 
-  const handleAssignRecruiter = (requirement: Requirement) => {
+  const showAssignRecruiterDialog = (requirement: Requirement) => {
     setAssignRequirement(requirement);
     setAssignForm({ recruiter_name: requirement.recruiter_name || '' });
     setAssignOpen(true);
@@ -116,16 +120,18 @@ const RequirementList: React.FC = () => {
 
   const handleAssignSave = async () => {
     if (assignRequirement) {
+      setAssignLoading(true);
       await handleApiResponse(
-        () => requirementService.updateRequirement(assignRequirement.requirement_id, { recruiter_name: assignForm.recruiter_name }),
+        () => requirementService.assignRecruiter(assignRequirement.requirement_id, assignForm.recruiter_name),
         () => {
           setRequirements(prev => prev.map(r => 
             r.requirement_id === assignRequirement.requirement_id ? { ...r, recruiter_name: assignForm.recruiter_name } : r
           ));
+          setAssignOpen(false);
         }
       );
+      setAssignLoading(false);
     }
-    setAssignOpen(false);
   };
 
   const getStatusColor = (statusId: number) => {
@@ -146,7 +152,7 @@ const RequirementList: React.FC = () => {
         return 'success';
       case 'offer declined':
       case 'demand closed':
-        return 'error';
+        return 'default';
       default:
         return 'default';
     }
@@ -204,13 +210,14 @@ const RequirementList: React.FC = () => {
                 </MenuItem>
               ))}
             </TextField>
-            {(searchTerm || statusFilter.length > 0) && (
+            {(searchTerm || statusFilter.length > 0 || showActiveOnly) && (
               <Button
                 variant="outlined"
                 startIcon={<Clear />}
                 onClick={() => {
                   setSearchTerm('');
                   setStatusFilter([]);
+                  setShowActiveOnly(false);
                 }}
                 sx={{ borderRadius: 3 }}
               >
@@ -218,6 +225,17 @@ const RequirementList: React.FC = () => {
               </Button>
             )}
           </Stack>
+          
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={showActiveOnly}
+                onChange={(e) => setShowActiveOnly(e.target.checked)}
+              />
+            }
+            label="Show active requirements only"
+            sx={{ mb: 2 }}
+          />
         
           {loading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
@@ -259,43 +277,21 @@ const RequirementList: React.FC = () => {
                       <TableCell sx={tableStyles.bodyCell}>
                         <Stack direction="row" alignItems="center" spacing={2}>
                           <Avatar sx={tableStyles.avatar}>
-                            {(requirement.company_name || 'C').charAt(0).toUpperCase()}
+                            {(requirement.company_name || 'C')[0].toUpperCase()}
                           </Avatar>
                           <Typography variant="subtitle1" fontWeight={500}>
                             {requirement.company_name || 'N/A'}
                           </Typography>
                         </Stack>
                       </TableCell>
+                      <TableCell sx={tableStyles.bodyCell}>{requirement.key_skill}</TableCell>
+                      <TableCell sx={tableStyles.bodyCell}>{requirement.recruiter_name}</TableCell>
+                      <TableCell sx={tableStyles.bodyCell}>{formatDateOnly(requirement.created_date)}</TableCell>
+                      <TableCell sx={tableStyles.bodyCell}>{requirement.location}</TableCell>
                       <TableCell sx={tableStyles.bodyCell}>
-                        <Typography variant="body2" color="text.primary">
-                          {requirement.key_skill}
-                        </Typography>
+                        {requirement.budget ? `₹${requirement.budget.toLocaleString()}` : 'N/A'}
                       </TableCell>
-                      <TableCell sx={tableStyles.bodyCell}>
-                        <Typography variant="body2" color="text.secondary">
-                          {requirement.recruiter_name}
-                        </Typography>
-                      </TableCell>
-                      <TableCell sx={tableStyles.bodyCell}>
-                        <Typography variant="body2" color="text.secondary">
-                          {formatDateOnly(requirement.created_date)}
-                        </Typography>
-                      </TableCell>
-                      <TableCell sx={tableStyles.bodyCell}>
-                        <Typography variant="body2" color="text.secondary">
-                          {requirement.location}
-                        </Typography>
-                      </TableCell>
-                      <TableCell sx={tableStyles.bodyCell}>
-                        <Typography variant="body2" color="text.secondary">
-                          {requirement.budget ? `₹${requirement.budget.toLocaleString()}` : 'N/A'}
-                        </Typography>
-                      </TableCell>
-                      <TableCell sx={tableStyles.bodyCell}>
-                        <Typography variant="body2" color="text.secondary">
-                          {formatDateOnly(requirement.expected_billing_date)}
-                        </Typography>
-                      </TableCell>
+                      <TableCell sx={tableStyles.bodyCell}>{formatDateOnly(requirement.expected_billing_date)}</TableCell>
                       <TableCell sx={tableStyles.bodyCell}>
                         <Chip 
                           label={requirement.status || 'Unknown'}
@@ -316,7 +312,7 @@ const RequirementList: React.FC = () => {
                             <Visibility fontSize="small" />
                           </IconButton>
                           <IconButton 
-                            onClick={() => handleAssignRecruiter(requirement)}
+                            onClick={() => showAssignRecruiterDialog(requirement)}
                             size="small"
                             sx={tableStyles.actionButton}
                             title="Assign Recruiter"
@@ -379,27 +375,47 @@ const RequirementList: React.FC = () => {
             Assign Recruiter
           </DialogTitle>
           <DialogContent sx={{ pt: 3 }}>
-            <TextField
-              fullWidth
-              select
-              label="Recruiter Name"
-              value={assignForm.recruiter_name}
-              onChange={(e) => setAssignForm({ recruiter_name: e.target.value })}
-              sx={{ mt: 2, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-            >
-              {users.map(user => (
-                <MenuItem key={user.username} value={user.username}>
-                  {user.username}
-                </MenuItem>
-              ))}
-            </TextField>
+            {users.length === 0 ? (
+              <Typography>No users available</Typography>
+            ) : (
+              <TableContainer>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Select</TableCell>
+                      <TableCell>First Name</TableCell>
+                      <TableCell>Last Name</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {users.map(user => (
+                      <TableRow key={user.username}>
+                        <TableCell>
+                          <Radio
+                            checked={assignForm.recruiter_name === user.username}
+                            onChange={() => setAssignForm({ recruiter_name: user.username })}
+                          />
+                        </TableCell>
+                        <TableCell>{user.given_name || '-'}</TableCell>
+                        <TableCell>{user.family_name || '-'}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
           </DialogContent>
           <DialogActions sx={{ p: 3, pt: 2 }}>
             <Button onClick={() => setAssignOpen(false)} sx={{ borderRadius: 2 }}>
               Cancel
             </Button>
-            <Button onClick={handleAssignSave} variant="contained" sx={{ borderRadius: 2, px: 3 }}>
-              Assign
+            <Button 
+              onClick={handleAssignSave} 
+              variant="contained" 
+              disabled={assignLoading}
+              sx={{ borderRadius: 2, px: 3 }}
+            >
+              {assignLoading ? <CircularProgress size={20} /> : 'Assign'}
             </Button>
           </DialogActions>
         </Dialog>

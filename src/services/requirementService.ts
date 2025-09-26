@@ -65,6 +65,17 @@ export const requirementService = {
     return response;
   },
 
+  async assignRecruiter(id: number, recruiter_name: string): Promise<ApiResponse> {
+    const endpoint = process.env.REACT_APP_REQUIREMENTS_ASSIGN_RECRUITER_ENDPOINT!.replace('{requirement_id}', id.toString());
+    const response = await apiService.put<ApiResponse>(endpoint, { recruiter_name });
+    
+    if (response.success) {
+      cacheService.delete(CACHE_KEY);
+    }
+    
+    return response;
+  },
+
   clearCache(): void {
     cacheService.delete(CACHE_KEY);
   }
