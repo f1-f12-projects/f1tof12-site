@@ -1,9 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Container, Paper, Typography, TextField, Button, Grid, Alert } from '@mui/material';
+import { Box, Container, Paper, Typography, TextField, Button, Grid } from '@mui/material';
+import { companyService } from '../../services/companyService';
+import { alert } from '../../utils/alert';
+import { useAuth } from '../../context/AuthContext';
+import { handleApiResponse } from '../../utils/apiHandler';
 
 const RegisterCompany: React.FC = () => {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [formData, setFormData] = useState({
     companyName: '',
     spocName: '',
@@ -18,8 +23,13 @@ const RegisterCompany: React.FC = () => {
     emailId: ''
   });
   
-  const [success, setSuccess] = useState(false);
-
+  useEffect(() => {
+    if (!isAuthenticated) {
+      alert.error('Please login to access this page');
+      navigate('/login');
+    }
+  }, [isAuthenticated, navigate]);
+  
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     setErrors({ ...errors, [e.target.name]: '' });
@@ -41,12 +51,26 @@ const RegisterCompany: React.FC = () => {
     return !Object.values(newErrors).some(error => error);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const registerCompany = async () => {
+    const companyData = {
+      name: formData.companyName,
+      spoc: formData.spocName,
+      email_id: formData.emailId,
+      status: 'active' as const
+    };
+    
+    return await handleApiResponse(
+      () => companyService.registerCompany(companyData),
+      () => {
+        setTimeout(() => navigate('/'), 2000);
+      }
+    );
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
-      console.log('Company Registration:', formData);
-      setSuccess(true);
-      setTimeout(() => navigate('/'), 2000);
+      await registerCompany();
     }
   };
 
@@ -57,64 +81,31 @@ const RegisterCompany: React.FC = () => {
           Register Company
         </Typography>
         
-        {success && (
-          <Alert severity="success" sx={{ mb: 3 }}>
-            Company registered successfully! Redirecting to home...
-          </Alert>
-        )}
+
         
         <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 3 }}>
           <Grid container spacing={3}>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Company Name"
-                name="companyName"
-                value={formData.companyName}
-                onChange={handleChange}
-                error={!!errors.companyName}
-                helperText={errors.companyName}
-              />
-            </Grid>
-            
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="SPOC Name"
-                name="spocName"
-                value={formData.spocName}
-                onChange={handleChange}
-                error={!!errors.spocName}
-                helperText={errors.spocName}
-              />
-            </Grid>
-            
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Company Address"
-                name="companyAddress"
-                value={formData.companyAddress}
-                onChange={handleChange}
-                multiline
-                rows={3}
-                error={!!errors.companyAddress}
-                helperText={errors.companyAddress}
-              />
-            </Grid>
-            
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Email ID"
-                name="emailId"
-                type="email"
-                value={formData.emailId}
-                onChange={handleChange}
-                error={!!errors.emailId}
-                helperText={errors.emailId}
-              />
-            </Grid>
+            {[
+              { name: 'companyName', label: 'Company Name', xs: 12, sm: 6 },
+              { name: 'spocName', label: 'SPOC Name', xs: 12, sm: 6 },
+              { name: 'companyAddress', label: 'Company Address', xs: 12, multiline: true, rows: 3 },
+              { name: 'emailId', label: 'Email ID', xs: 12, type: 'email' }
+            ].map(field => (
+              <Grid item xs={field.xs} sm={field.sm} key={field.name}>
+                <TextField
+                  fullWidth
+                  label={field.label}
+                  name={field.name}
+                  type={field.type}
+                  value={formData[field.name as keyof typeof formData]}
+                  onChange={handleChange}
+                  error={!!errors[field.name as keyof typeof errors]}
+                  helperText={errors[field.name as keyof typeof errors]}
+                  multiline={field.multiline}
+                  rows={field.rows}
+                />
+              </Grid>
+            ))}
             
             <Grid item xs={12}>
               <Button
@@ -122,7 +113,7 @@ const RegisterCompany: React.FC = () => {
                 variant="contained"
                 size="large"
                 fullWidth
-                disabled={success}
+
                 sx={{ 
                   mt: 2, 
                   py: 1.5,
@@ -131,7 +122,7 @@ const RegisterCompany: React.FC = () => {
                   fontSize: '1.1rem'
                 }}
               >
-                {success ? 'Registered Successfully!' : 'Register Company'}
+                Register Company
               </Button>
             </Grid>
           </Grid>

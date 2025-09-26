@@ -1,167 +1,146 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Button, Container, Paper } from '@mui/material';
-import { KeyboardArrowDown } from '@mui/icons-material';
+import { Box, List, ListItem, ListItemButton, ListItemText, Collapse, Drawer, IconButton } from '@mui/material';
+import { ExpandLess, ExpandMore, Business, People, Event, Assessment, AccountBalance, AdminPanelSettings, Menu } from '@mui/icons-material';
+import { useAuth } from '../context/AuthContext';
+import { roleHelper } from '../utils/roleHelper';
 
 const MegaBar: React.FC = () => {
-  const [showCompanyOptions, setShowCompanyOptions] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [companyOpen, setCompanyOpen] = useState(false);
+  const [adminOpen, setAdminOpen] = useState(false);
+  const [reportsOpen, setReportsOpen] = useState(false);
   const navigate = useNavigate();
-  let timeoutId: NodeJS.Timeout;
+  const { userRole } = useAuth();
 
-  const handleMouseEnter = () => {
-    clearTimeout(timeoutId);
-    setShowCompanyOptions(true);
+  const handleNavigate = (path: string) => {
+    navigate(path);
+    setCompanyOpen(false);
+    setAdminOpen(false);
+    setReportsOpen(false);
+    setSidebarOpen(false);
   };
+  
+  const visibleMenuItems = useMemo(() => 
+    userRole ? roleHelper.getVisibleMenuItems(userRole) : [], 
+    [userRole]
+  );
 
-  const handleMouseLeave = () => {
-    timeoutId = setTimeout(() => setShowCompanyOptions(false), 200);
-  };
+  const drawerWidth = 240;
+
+  const menuItems = useMemo(() => ({
+    admin: [
+      { label: 'Manage Users', path: '/admin/users' },
+      { label: 'Register New Company', path: '/company/register' },
+      { label: 'Show Companies', path: '/company/list' },
+      { label: 'Manage SPOC', path: '/company/spoc' }
+    ],
+    reports: [
+      { label: 'Invoice', path: '/reports/invoices' }
+    ],
+    main: [
+      { label: 'Requirements', path: '/requirements', icon: <People /> },
+      { label: 'Profiles', path: '/profiles', icon: <Event /> },
+      { label: 'Reports', path: '/reports', icon: <Assessment /> },
+      { label: 'Finance', path: '/company/invoices', icon: <AccountBalance /> },
+      { label: 'Admin', path: '/admin/users', icon: <AccountBalance /> }
+    ]
+  }), []);
+
+
 
   return (
-    <Box sx={{ bgcolor: 'white', borderBottom: '1px solid #e0e0e0', position: 'relative' }}>
-      <Container maxWidth="lg">
-        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 6, py: 2 }}>
-          <Button
-            variant="text"
-            sx={{ 
-              color: 'text.primary',
-              fontWeight: 600,
-              textTransform: 'none',
-              fontSize: '1rem',
-              px: 3,
-              py: 1.5,
-              borderRadius: 2,
-              transition: 'all 0.2s ease',
-              '&:hover': {
-                bgcolor: 'primary.main',
-                color: 'white',
-                transform: 'translateY(-1px)'
-              }
-            }}
-            onMouseEnter={handleMouseEnter}
-            onMouseLeave={handleMouseLeave}
-            endIcon={<KeyboardArrowDown sx={{ 
-              transform: showCompanyOptions ? 'rotate(180deg)' : 'rotate(0deg)',
-              transition: 'transform 0.2s ease'
-            }} />}
-          >
-            Company
-          </Button>
-          
-          {['Recruiter', 'Profiles', 'Reports'].map((item) => (
-            <Button
-              key={item}
-              variant="text"
-              sx={{
-                color: 'text.primary',
-                fontWeight: 600,
-                textTransform: 'none',
-                fontSize: '1rem',
-                px: 3,
-                py: 1.5,
-                borderRadius: 2,
-                transition: 'all 0.2s ease',
-                '&:hover': {
-                  bgcolor: 'primary.main',
-                  color: 'white',
-                  transform: 'translateY(-1px)'
-                }
-              }}
-            >
-              {item}
-            </Button>
-          ))}
-        </Box>
-        
-        {showCompanyOptions && (
-          <Paper
-            elevation={8}
-            sx={{
-              position: 'absolute',
-              top: '100%',
-              left: 0,
-              right: 0,
-              zIndex: 1000,
-              bgcolor: 'white',
-              borderRadius: 0,
-              borderTop: '3px solid',
-              borderColor: 'primary.main',
-              animation: 'slideDown 0.2s ease-out'
-            }}
-            onMouseEnter={handleMouseEnter}
-            onMouseLeave={handleMouseLeave}
-          >
-            <Container maxWidth="lg">
-              <Box sx={{ display: 'flex', justifyContent: 'center', gap: 8, py: 3 }}>
-                <Button
-                  variant="text"
-                  onClick={() => navigate('/company/register')}
-                  sx={{
-                    color: 'text.primary',
-                    fontWeight: 500,
-                    textTransform: 'none',
-                    fontSize: '0.95rem',
-                    px: 4,
-                    py: 2,
-                    borderRadius: 3,
-                    border: '1px solid transparent',
-                    transition: 'all 0.2s ease',
-                    '&:hover': {
-                      bgcolor: 'primary.light',
-                      color: 'primary.dark',
-                      border: '1px solid',
-                      borderColor: 'primary.main',
-                      transform: 'scale(1.05)'
-                    }
-                  }}
-                >
-                  Register
-                </Button>
-                <Button
-                  variant="text"
-                  onClick={() => navigate('/company/list')}
-                  sx={{
-                    color: 'text.primary',
-                    fontWeight: 500,
-                    textTransform: 'none',
-                    fontSize: '0.95rem',
-                    px: 4,
-                    py: 2,
-                    borderRadius: 3,
-                    border: '1px solid transparent',
-                    transition: 'all 0.2s ease',
-                    '&:hover': {
-                      bgcolor: 'primary.light',
-                      color: 'primary.dark',
-                      border: '1px solid',
-                      borderColor: 'primary.main',
-                      transform: 'scale(1.05)'
-                    }
-                  }}
-                >
-                  List
-                </Button>
-              </Box>
-            </Container>
-          </Paper>
-        )}
-      </Container>
-      
-      <style>
-        {`
-          @keyframes slideDown {
-            from {
-              opacity: 0;
-              transform: translateY(-10px);
-            }
-            to {
-              opacity: 1;
-              transform: translateY(0);
-            }
+    <>
+      <IconButton
+        onClick={() => setSidebarOpen(!sidebarOpen)}
+        sx={{
+          position: 'fixed',
+          top: 80,
+          left: 16,
+          zIndex: 1300,
+          bgcolor: 'background.paper',
+          boxShadow: 2
+        }}
+      >
+        <Menu />
+      </IconButton>
+      <Drawer
+        variant="temporary"
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        sx={{
+          width: drawerWidth,
+          flexShrink: 0,
+          '& .MuiDrawer-paper': {
+            width: drawerWidth,
+            boxSizing: 'border-box',
+            bgcolor: 'background.paper',
+            borderRight: 1,
+            borderColor: 'divider',
+            marginTop: '64px'
           }
-        `}
-      </style>
-    </Box>
+        }}
+      >
+      <List sx={{ pt: 2 }}>
+        {menuItems.main.map(({ label, path, icon }) => 
+          visibleMenuItems.includes(path) && (
+            label === 'Reports' ? (
+              <React.Fragment key={path}>
+                <ListItem disablePadding>
+                  <ListItemButton onClick={() => setReportsOpen(!reportsOpen)}>
+                    {icon}
+                    <ListItemText primary={label} sx={{ ml: 2 }} />
+                    {reportsOpen ? <ExpandLess /> : <ExpandMore />}
+                  </ListItemButton>
+                </ListItem>
+                <Collapse in={reportsOpen} timeout="auto" unmountOnExit>
+                  <List component="div" disablePadding>
+                    {menuItems.reports.map(({ label, path }) => (
+                      <ListItem key={path} disablePadding>
+                        <ListItemButton sx={{ pl: 4 }} onClick={() => handleNavigate(path)}>
+                          <ListItemText primary={label} />
+                        </ListItemButton>
+                      </ListItem>
+                    ))}
+                  </List>
+                </Collapse>
+              </React.Fragment>
+            ) : (
+              <ListItem key={path} disablePadding>
+                <ListItemButton onClick={() => handleNavigate(path)}>
+                  {icon}
+                  <ListItemText primary={label} sx={{ ml: 2 }} />
+                </ListItemButton>
+              </ListItem>
+            )
+          )
+        )}
+        
+        {visibleMenuItems.includes('/admin') && (
+          <>
+            <ListItem disablePadding>
+              <ListItemButton onClick={() => setAdminOpen(!adminOpen)}>
+                <AdminPanelSettings sx={{ mr: 2 }} />
+                <ListItemText primary="Admin" />
+                {adminOpen ? <ExpandLess /> : <ExpandMore />}
+              </ListItemButton>
+            </ListItem>
+            <Collapse in={adminOpen} timeout="auto" unmountOnExit>
+              <List component="div" disablePadding>
+                {menuItems.admin.map(({ label, path }) => (
+                  <ListItem key={path} disablePadding>
+                    <ListItemButton sx={{ pl: 4 }} onClick={() => handleNavigate(path)}>
+                      <ListItemText primary={label} />
+                    </ListItemButton>
+                  </ListItem>
+                ))}
+              </List>
+            </Collapse>
+          </>
+        )}
+      </List>
+    </Drawer>
+    </>
   );
 };
 

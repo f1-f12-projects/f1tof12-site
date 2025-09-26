@@ -1,12 +1,13 @@
 import React from 'react';
-import { CssBaseline, Container } from '@mui/material';
+import { CssBaseline } from '@mui/material';
+import { ThemeContextProvider } from '../context/ThemeContext';
 
-const MaterialUIWrapper: React.FC = ({ children }) => {
+const MaterialUIWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
-    <Container>
+    <ThemeContextProvider>
       <CssBaseline />
       {children}
-    </Container>
+    </ThemeContextProvider>
   );
 };
 
