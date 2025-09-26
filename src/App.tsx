@@ -20,6 +20,7 @@ import ComingSoon from './pages/ComingSoon';
 import PageNotFound from './pages/PageNotFound';
 import InvoiceReport from './pages/reports/InvoiceReport';
 import RequirementList from './pages/requirements/RequirementList';
+import AddRequirement from './pages/requirements/AddRequirement';
 
 const HomePage: React.FC = () => (
   <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -52,6 +53,7 @@ const routes = {
 
   // Requirements Routes
   '/requirements': RequirementList,
+  '/requirements/add': AddRequirement,
 };
 
 const comingSoonRoutes = [

@@ -76,6 +76,16 @@ export const requirementService = {
     return response;
   },
 
+  async createRequirement(requirementData: Omit<Requirement, 'requirement_id' | 'company_name' | 'status' | 'recruiter_name' | 'closed_date' | 'remarks' | 'updated_date'> & { spoc_id?: number }): Promise<ApiResponse<Requirement>> {
+    const response = await apiService.post<ApiResponse<Requirement>>(process.env.REACT_APP_REQUIREMENTS_ADD_ENDPOINT!, requirementData);
+    
+    if (response.success) {
+      cacheService.delete(CACHE_KEY);
+    }
+    
+    return response;
+  },
+
   clearCache(): void {
     cacheService.delete(CACHE_KEY);
   }

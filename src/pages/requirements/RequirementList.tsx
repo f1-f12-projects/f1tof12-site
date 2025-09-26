@@ -7,6 +7,7 @@ import { Requirement } from '../../models/Requirement';
 import { RequirementStatus } from '../../models/RequirementStatus';
 import { requirementService } from '../../services/requirementService';
 import { userService } from '../../services/userService';
+import { companyService } from '../../services/companyService';
 import { User } from '../../models/User';
 import { formatDateTimeIST, formatDateOnly } from '../../utils/dateUtils';
 import { tableStyles } from '../../styles/tableStyles';
@@ -24,6 +25,7 @@ const RequirementList: React.FC = () => {
   const [requirements, setRequirements] = useState<Requirement[]>([]);
   const [statuses, setStatuses] = useState<RequirementStatus[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [companies, setCompanies] = useState<any[]>([]);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
@@ -53,13 +55,18 @@ const RequirementList: React.FC = () => {
         if (!isMounted) return;
         setStatuses(statusData);
         
+        const companiesResponse = await companyService.getCompanies();
+        const companiesData = companiesResponse.data || [];
+        setCompanies(companiesData);
+        
         await handleApiResponse(
           () => requirementService.getRequirements(),
           (data) => {
             if (!isMounted) return;
             const requirementsWithStatus = (Array.isArray(data) ? data : []).map(req => ({
               ...req,
-              status: statusData.find(s => s.id === req.status_id)?.status || 'Unknown'
+              status: statusData.find(s => s.id === req.status_id)?.status || 'Unknown',
+              company_name: req.company_name || companiesData.find(c => c.id === req.company_id)?.name || 'Unknown Company'
             }));
             setRequirements(requirementsWithStatus);
           },
@@ -161,7 +168,20 @@ const RequirementList: React.FC = () => {
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Card elevation={0} sx={{ borderRadius: 4, border: '1px solid', borderColor: 'divider' }}>
-        <PageHeader title="Requirements" subtitle="Manage job requirements and assignments" />
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <PageHeader 
+            title="Requirements" 
+            subtitle="Manage job requirements and assignments"
+          />
+          <Button
+            variant="contained"
+            startIcon={<Assignment />}
+            onClick={() => navigate('/requirements/add')}
+            sx={{ borderRadius: 3, m: 2 }}
+          >
+            Add Requirement
+          </Button>
+        </Box>
         
         <Box sx={{ p: 4 }}>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 4 }}>
