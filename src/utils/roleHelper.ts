@@ -28,7 +28,8 @@ export const roleHelper = {
     const defaultRoutes: Record<UserRole, string> = {
       [USER_ROLES.RECRUITER]: '/profiles',
       [USER_ROLES.LEAD]: '/requirements',
-      [USER_ROLES.MANAGER]: '/admin/users',
+      // [USER_ROLES.MANAGER]: '/admin/users',
+      [USER_ROLES.MANAGER]: '/requirements',
       [USER_ROLES.FINANCE]: '/company/invoices',
     };
 

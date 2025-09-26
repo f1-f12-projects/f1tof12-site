@@ -19,6 +19,7 @@ import Login from './pages/Login';
 import ComingSoon from './pages/ComingSoon';
 import PageNotFound from './pages/PageNotFound';
 import InvoiceReport from './pages/reports/InvoiceReport';
+import RequirementList from './pages/requirements/RequirementList';
 
 const HomePage: React.FC = () => (
   <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -48,12 +49,15 @@ const routes = {
   '/admin/users': UserList,
   '/admin/users/create': CreateUser,
   '/reports/invoices': InvoiceReport,
+
+  // Requirements Routes
+  '/requirements': RequirementList,
 };
 
 const comingSoonRoutes = [
   '/about', '/careers', '/contact', '/consulting', 
   '/development', '/support', '/privacy', '/terms',
-  '/requirements', '/profiles'
+  '/profiles'
 ];
 
 const AppContent: React.FC = () => {

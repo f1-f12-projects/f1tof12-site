@@ -8,7 +8,7 @@ import ThemeToggle from './ThemeToggle';
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
-  const { isAuthenticated, logout, username } = useAuth();
+  const { isAuthenticated, logout, username, userData } = useAuth();
   
   const handleAuthClick = async () => {
     if (isAuthenticated) {
@@ -47,6 +47,11 @@ const Header: React.FC = () => {
           </Typography>
         </Box>
         <ThemeToggle />
+        {isAuthenticated && userData && (
+          <Typography variant="body2" sx={{ ml: 2, mr: 1 }}>
+            Hi, {userData.givenName}
+          </Typography>
+        )}
         <Button 
           color="inherit" 
           variant="outlined" 

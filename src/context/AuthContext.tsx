@@ -3,11 +3,18 @@ import { setRefreshTokenFunction } from '../services/apiService';
 import { UserRole } from '../types/roles';
 import { cacheService } from '../services/cacheService';
 
+interface UserData {
+  profileId: string;
+  givenName: string;
+  familyName: string;
+}
+
 interface AuthContextType {
   username: string | null;
   authToken: string | null;
   userRole: UserRole | null;
-  login: (username: string, token: string, role: UserRole, refreshToken?: string, cacheData?: Record<string, any>) => void;
+  userData: UserData | null;
+  login: (username: string, token: string, role: UserRole, userData?: UserData, refreshToken?: string, cacheData?: Record<string, any>) => void;
   logout: () => void;
   isAuthenticated: boolean;
   checkAuthentication: () => Promise<boolean>;
@@ -55,17 +62,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [username, setUsername] = useState<string | null>(null);
   const [authToken, setAuthToken] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
+  const [userData, setUserData] = useState<UserData | null>(null);
   const [refreshToken, setRefreshToken] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const login = (username: string, token: string, role: UserRole, refreshToken?: string, cacheData?: Record<string, any>) => {
+  const login = (username: string, token: string, role: UserRole, userData?: UserData, refreshToken?: string, cacheData?: Record<string, any>) => {
     setUsername(username);
     setAuthToken(token);
     setUserRole(role);
+    setUserData(userData || null);
     setRefreshToken(refreshToken || null);
     localStorage.setItem('authToken', token);
     localStorage.setItem('username', username);
     localStorage.setItem('userRole', role);
+    if (userData) localStorage.setItem('userData', JSON.stringify(userData));
     if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
     
     if (cacheData) {
@@ -79,10 +89,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setUsername(null);
     setAuthToken(null);
     setUserRole(null);
+    setUserData(null);
     setRefreshToken(null);
     localStorage.removeItem('authToken');
     localStorage.removeItem('username');
     localStorage.removeItem('userRole');
+    localStorage.removeItem('userData');
     localStorage.removeItem('refreshToken');
     cacheService.clear();
   };
@@ -127,6 +139,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const token = localStorage.getItem('authToken');
     const storedUsername = localStorage.getItem('username');
     const storedUserRole = localStorage.getItem('userRole') as UserRole;
+    const storedUserData = localStorage.getItem('userData');
     const storedRefreshToken = localStorage.getItem('refreshToken');
     
     if (token && storedUsername) {
@@ -137,6 +150,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               setAuthToken(result.access_token);
               setUsername(storedUsername);
               setUserRole(storedUserRole);
+              setUserData(storedUserData ? JSON.parse(storedUserData) : null);
               setRefreshToken(storedRefreshToken);
               localStorage.setItem('authToken', result.access_token);
             } else {
@@ -150,6 +164,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setAuthToken(token);
         setUsername(storedUsername);
         setUserRole(storedUserRole);
+        setUserData(storedUserData ? JSON.parse(storedUserData) : null);
         setRefreshToken(storedRefreshToken);
       }
     }
@@ -177,7 +192,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const isAuthenticated = !!username && !!authToken && !isTokenExpired(authToken || '');
 
   return (
-    <AuthContext.Provider value={{ username, authToken, userRole, login, logout, isAuthenticated, checkAuthentication, handleAuthError, refreshAccessToken, cacheData, getCachedData }}>
+    <AuthContext.Provider value={{ username, authToken, userRole, userData, login, logout, isAuthenticated, checkAuthentication, handleAuthError, refreshAccessToken, cacheData, getCachedData }}>
       {children}
     </AuthContext.Provider>
   );

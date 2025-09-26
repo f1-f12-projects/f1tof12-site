@@ -12,6 +12,11 @@ interface LoginResponse {
   token_type: string;
   status_code: number;
   role: UserRole;
+  userData?: {
+    profileId: string;
+    givenName: string;
+    familyName: string;
+  };
 }
 
 interface PasswordChangeRequest {
