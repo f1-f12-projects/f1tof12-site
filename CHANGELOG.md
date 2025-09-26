@@ -2,13 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.2.1] - 2025-09-21
+## [1.3.0] - 2025-09-26
+
+### Added
+- Added Requirements page
+- When Manager logs in, it will re-direct to Requirements page
 
 ### Fixed
 - Minor bug fixes and improvements on alerts
-- Added Requirements page
 - Fix to ensure dates always shows in IST format
-- When Manager logs in, it will re-direct to Requirements page
 
 ## [1.2.0] - 2025-09-21
 
