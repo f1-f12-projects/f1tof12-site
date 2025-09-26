@@ -155,7 +155,7 @@ const RequirementViewDialog: React.FC<RequirementViewDialogProps> = ({
         gap: 2
       }}>
         <Visibility sx={{ fontSize: 28 }} />
-        Requirement Details
+        Requirement Details - {requirement?.requirement_id}
       </DialogTitle>
       <DialogContent sx={{ p: 4, pt: 4 }}>
         {requirement && (
