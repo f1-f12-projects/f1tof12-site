@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file.
 - When Manager logs in, it will re-direct to Requirements page
 - Added Assign Recuiter to the requirement
 - Add new Requirement
+- Added Profile page to show like Dashboard
 
 ### Fixed
 - Minor bug fixes and improvements on alerts
