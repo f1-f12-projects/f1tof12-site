@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Container,
   Paper,
@@ -13,12 +13,19 @@ import {
   ListItemText,
   Avatar,
   Stack,
-  Button
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField
 } from '@mui/material';
 import { Company } from '../../models/Company';
 import { Requirement } from '../../models/Requirement';
+import { Profile } from '../../models/Profile';
 import { companyService } from '../../services/companyService';
 import { requirementService } from '../../services/requirementService';
+import { profileService } from '../../services/profileService';
 import { showAlert } from '../../utils/alert';
 import PageHeader from '../../components/PageHeader';
 
@@ -28,6 +35,57 @@ const CompanyRequirements: React.FC = () => {
   const [requirements, setRequirements] = useState<Requirement[]>([]);
   const [selectedRequirement, setSelectedRequirement] = useState<Requirement | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    skills: '',
+    experience_years: '',
+    current_location: '',
+    preferred_location: '',
+    current_ctc: '',
+    expected_ctc: '',
+    notice_period: ''
+  });
+
+  const handleInputChange = React.useCallback((field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({...prev, [field]: e.target.value}));
+  }, []);
+
+  const handleAddCandidate = async () => {
+    if (!selectedRequirement) {
+      showAlert('Please select a requirement first', 'error');
+      return;
+    }
+    
+    try {
+      const payload: Omit<Profile, 'id' | 'created_date' | 'updated_date'> & { requirement_id: number } = {
+        ...formData,
+        experience_years: parseInt(formData.experience_years) || 0,
+        current_ctc: formData.current_ctc ? parseFloat(formData.current_ctc) : null,
+        expected_ctc: formData.expected_ctc ? parseFloat(formData.expected_ctc) : null,
+        notice_period: formData.notice_period || null,
+        requirement_id: selectedRequirement.requirement_id
+      };
+      
+      const response = await profileService.createProfile(payload);
+      
+      if (response.success) {
+        showAlert('Candidate added successfully', 'success');
+        setShowAddForm(false);
+        setFormData({
+          name: '', email: '', phone: '', skills: '', experience_years: '',
+          current_location: '', preferred_location: '', current_ctc: '',
+          expected_ctc: '', notice_period: ''
+        });
+      } else {
+        showAlert('Failed to add candidate', 'error');
+      }
+    } catch (error) {
+      showAlert('Error adding candidate', 'error');
+    }
+  };
 
   useEffect(() => {
     loadCompanies();
@@ -261,6 +319,7 @@ const CompanyRequirements: React.FC = () => {
                         <Button 
                           variant="contained" 
                           size="medium"
+                          onClick={() => setShowAddForm(true)}
                           sx={{ 
                             background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
                             '&:hover': { background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)' },
@@ -318,6 +377,89 @@ const CompanyRequirements: React.FC = () => {
           </Grid>
         )}
       </Paper>
+      
+      <Dialog 
+        open={showAddForm} 
+        onClose={() => setShowAddForm(false)} 
+        maxWidth="lg" 
+        fullWidth
+        scroll="body"
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            maxHeight: '90vh',
+            m: 1
+          }
+        }}
+      >
+        <DialogTitle sx={{ 
+          background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+          color: 'white',
+          fontSize: '1.25rem', 
+          fontWeight: 600,
+          py: 2
+        }}>
+          👤 Add New Candidate
+        </DialogTitle>
+        <DialogContent sx={{ p: 3, backgroundColor: '#fafafa' }}>
+          <Grid container spacing={2.5} sx={{ mt: 0.5 }}>
+            {[
+              { field: 'name', label: 'Name', xs: 12, sm: 4 },
+              { field: 'email', label: 'Email', xs: 12, sm: 4 },
+              { field: 'phone', label: 'Phone', xs: 12, sm: 4 },
+              { field: 'experience_years', label: 'Experience (Years)', type: 'number', xs: 12, sm: 4 },
+              { field: 'current_location', label: 'Current Location', xs: 12, sm: 4 },
+              { field: 'preferred_location', label: 'Preferred Location', xs: 12, sm: 4 },
+              { field: 'current_ctc', label: 'Current CTC (₹)', type: 'number', xs: 12, sm: 6 },
+              { field: 'expected_ctc', label: 'Expected CTC (₹)', type: 'number', xs: 12, sm: 6 },
+              { field: 'skills', label: 'Technical Skills', xs: 12, sm: 6 },
+              { field: 'notice_period', label: 'Notice Period', xs: 12, sm: 6 }
+            ].map(({ field, label, type, xs, sm }) => (
+              <Grid item xs={xs} sm={sm} key={field}>
+                <TextField 
+                  fullWidth 
+                  label={label}
+                  variant="outlined"
+                  size="small"
+                  type={type} 
+                  value={formData[field as keyof typeof formData]} 
+                  onChange={handleInputChange(field)}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      backgroundColor: 'white',
+                      '&.Mui-focused fieldset': {
+                        borderColor: '#6366f1'
+                      }
+                    }
+                  }}
+                />
+              </Grid>
+            ))}
+          </Grid>
+        </DialogContent>
+        <DialogActions sx={{ p: 2.5, backgroundColor: '#f5f5f5', gap: 1 }}>
+          <Button 
+            onClick={() => setShowAddForm(false)}
+            variant="outlined"
+            sx={{ borderRadius: 2 }}
+          >
+            Cancel
+          </Button>
+          <Button 
+            variant="contained" 
+            onClick={handleAddCandidate}
+            sx={{
+              borderRadius: 2,
+              background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)'
+              }
+            }}
+          >
+            Add Candidate
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };

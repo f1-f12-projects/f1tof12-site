@@ -106,7 +106,7 @@ const RequirementList: React.FC = () => {
       const matchesSearch = (requirement.company_name || '').toLowerCase().includes(searchTermLower) || 
                            (requirement.key_skill || '').toLowerCase().includes(searchTermLower);
       const matchesStatus = statusFilter.length === 0 || (requirement.status_id && statusFilter.includes(requirement.status_id.toString()));
-      const matchesActive = !showActiveOnly || (requirement.status_id !== 9 && requirement.status_id !== 10);
+      const matchesActive = !showActiveOnly || (requirement.status_id !== 4 && requirement.status_id !== 5);
       return matchesSearch && matchesStatus && matchesActive;
     }), [requirements, searchTerm, statusFilter, showActiveOnly]);
 
