@@ -21,7 +21,7 @@ import PageNotFound from './pages/PageNotFound';
 import InvoiceReport from './pages/reports/InvoiceReport';
 import RequirementList from './pages/requirements/RequirementList';
 import AddRequirement from './pages/requirements/AddRequirement';
-import CompanyRequirements from './pages/profiles/CompanyRequirements';
+import ProcessProfiles from './pages/profiles/ProcessProfiles';
 
 const HomePage: React.FC = () => (
   <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -57,7 +57,7 @@ const routes = {
   '/requirements/add': AddRequirement,
 
   // Profile Routes
-  '/profiles': CompanyRequirements,
+  '/profiles': ProcessProfiles,
 };
 
 const comingSoonRoutes = [
