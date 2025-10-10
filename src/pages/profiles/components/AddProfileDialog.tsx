@@ -16,7 +16,7 @@ interface FormData {
   notice_period: string;
 }
 
-interface AddCandidateDialogProps {
+interface AddProfileDialogProps {
   open: boolean;
   onClose: () => void;
   formData: FormData;
@@ -27,7 +27,7 @@ interface AddCandidateDialogProps {
   onSubmit: () => void;
 }
 
-const AddCandidateDialog: React.FC<AddCandidateDialogProps> = ({
+const AddProfileDialog: React.FC<AddProfileDialogProps> = ({
   open,
   onClose,
   formData,
@@ -59,7 +59,7 @@ const AddCandidateDialog: React.FC<AddCandidateDialogProps> = ({
         fontWeight: 600,
         py: 2
       }}>
-        👤 Add New Candidate
+        👤 Add New Profile
       </DialogTitle>
       <DialogContent sx={{ p: 3, backgroundColor: '#fafafa' }}>
         <Grid container spacing={2.5} sx={{ mt: 0.5 }}>
@@ -99,11 +99,11 @@ const AddCandidateDialog: React.FC<AddCandidateDialogProps> = ({
             }
           }}
         >
-          {submitting ? <CircularProgress size={20} color="inherit" /> : 'Add Candidate'}
+          {submitting ? <CircularProgress size={20} color="inherit" /> : 'Add Profile'}
         </Button>
       </DialogActions>
     </Dialog>
   );
 };
 
-export default AddCandidateDialog;
+export default AddProfileDialog;

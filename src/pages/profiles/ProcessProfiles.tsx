@@ -3,7 +3,7 @@ import { Container, Paper, Typography, Box, Grid } from '@mui/material';
 import { Company } from '../../models/Company';
 import { Requirement } from '../../models/Requirement';
 import { Profile } from '../../models/Profile';
-import { CandidateStatus } from '../../models/CandidateStatus';
+import { ProfileStatus } from '../../models/ProfileStatus';
 import { companyService } from '../../services/companyService';
 import { requirementService } from '../../services/requirementService';
 import { profileService } from '../../services/profileService';
@@ -13,7 +13,7 @@ import PageHeader from '../../components/PageHeader';
 import CompanyCard from './components/CompanyCard';
 import RequirementsList from './components/RequirementsList';
 import ProfileDashboard from './components/ProfileDashboard';
-import AddCandidateDialog from './components/AddCandidateDialog';
+import AddProfileDialog from './components/AddProfileDialog';
 
 const ProcessProfiles: React.FC = () => {
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -48,7 +48,7 @@ const ProcessProfiles: React.FC = () => {
     }
   };
 
-  const handleAddCandidate = async () => {
+  const handleAddProfile = async () => {
     if (!selectedRequirement) {
       showAlert('Please select a requirement first', 'error');
       return;
@@ -84,7 +84,7 @@ const ProcessProfiles: React.FC = () => {
       const response = await profileService.createProfile(payload);
       
       if (response.success) {
-        showAlert('Candidate added successfully', 'success');
+        showAlert('Profile added successfully', 'success');
         setShowAddForm(false);
         setFormData({
           name: '', email: '', phone: '', skills: '', experience_years: '',
@@ -93,10 +93,10 @@ const ProcessProfiles: React.FC = () => {
         });
         setErrors({});
       } else {
-        showAlert('Failed to add candidate', 'error');
+        showAlert('Failed to add profile', 'error');
       }
     } catch (error) {
-      showAlert('Error adding candidate', 'error');
+      showAlert('Error adding profile', 'error');
     } finally {
       setSubmitting(false);
     }
@@ -186,14 +186,14 @@ const ProcessProfiles: React.FC = () => {
             <Grid item xs={12} md={9}>
               <ProfileDashboard
                 selectedRequirement={selectedRequirement}
-                onAddCandidate={() => setShowAddForm(true)}
+                onAddProfile={() => setShowAddForm(true)}
               />
             </Grid>
           </Grid>
         )}
       </Paper>
       
-      <AddCandidateDialog
+      <AddProfileDialog
         open={showAddForm}
         onClose={() => setShowAddForm(false)}
         formData={formData}
@@ -201,7 +201,7 @@ const ProcessProfiles: React.FC = () => {
         submitting={submitting}
         onInputChange={handleInputChange}
         onBlur={handleBlur}
-        onSubmit={handleAddCandidate}
+        onSubmit={handleAddProfile}
       />
     </Container>
   );

@@ -14,8 +14,8 @@ const apiCall = async <T>(method: string, endpoint: string, body?: any): Promise
     headers['x-cloudfront-secret'] = process.env.REACT_APP_CLOUDFRONT_SECRET;
   }
   
-  // Add custom origin header
-  headers['x-origin'] = window.location.origin;
+  // Add custom origin header (only if required by backend)
+  // headers['x-origin'] = window.location.origin;
   
   // Add Bearer token for all endpoints except login
   if (!endpoint.includes('/login')) {
