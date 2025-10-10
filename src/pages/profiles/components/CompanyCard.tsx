@@ -16,9 +16,13 @@ const CompanyCard: React.FC<CompanyCardProps> = ({ company, isSelected, onSelect
         transition: 'all 0.3s ease',
         border: isSelected ? 2 : 0,
         borderColor: 'primary.main',
-        background: isSelected 
-          ? 'linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%)' 
-          : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+        background: (theme) => isSelected 
+          ? theme.palette.mode === 'dark'
+            ? 'linear-gradient(135deg, #1a237e 0%, #4a148c 100%)'
+            : 'linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%)'
+          : theme.palette.mode === 'dark'
+            ? 'linear-gradient(135deg, #2c2c2c 0%, #3c3c3c 100%)'
+            : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
         boxShadow: isSelected ? 4 : 2,
         '&:hover': {
           transform: 'translateY(-4px)',

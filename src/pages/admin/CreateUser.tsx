@@ -56,8 +56,8 @@ const CreateUser: React.FC = () => {
       await userService.createUser({ ...formData, role: formData.role.toLowerCase() });
       alert.success('User created successfully');
       navigate('/admin/users');
-    } catch (error) {
-      alert.error('Failed to create user');
+    } catch (error: any) {
+      alert.error(error?.message || 'Failed to create user');
     } finally {
       setLoading(false);
     }

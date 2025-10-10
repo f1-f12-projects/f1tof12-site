@@ -10,6 +10,7 @@ export interface Profile {
   current_ctc?: number | null;
   expected_ctc?: number | null;
   notice_period?: string | null;
+  remarks?: string | null;
   created_date?: string;
   updated_date?: string;
 }

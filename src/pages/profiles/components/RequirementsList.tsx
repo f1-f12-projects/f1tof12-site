@@ -19,7 +19,7 @@ const RequirementsList: React.FC<RequirementsListProps> = ({
 }) => {
   return (
     <Paper sx={{ p: 0, borderRadius: 2, overflow: 'hidden', height: '800px', display: 'flex', flexDirection: 'column' }}>
-      <Box sx={{ p: 3, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
+      <Box sx={{ p: 3, background: (theme) => theme.palette.mode === 'dark' ? 'linear-gradient(135deg, #424242 0%, #616161 100%)' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
         <Typography variant="h6" sx={{ fontWeight: 600 }}>
           Open Requirements
         </Typography>
@@ -49,9 +49,13 @@ const RequirementsList: React.FC<RequirementsListProps> = ({
                   transition: 'all 0.2s ease',
                   border: selectedRequirement?.requirement_id === requirement.requirement_id ? 2 : 1,
                   borderColor: selectedRequirement?.requirement_id === requirement.requirement_id ? 'primary.main' : 'grey.200',
-                  background: selectedRequirement?.requirement_id === requirement.requirement_id 
-                    ? 'linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%)'
-                    : 'linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%)',
+                  background: (theme) => selectedRequirement?.requirement_id === requirement.requirement_id 
+                    ? theme.palette.mode === 'dark'
+                      ? 'linear-gradient(135deg, #1a237e 0%, #4a148c 100%)'
+                      : 'linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%)'
+                    : theme.palette.mode === 'dark'
+                      ? 'linear-gradient(135deg, #2c2c2c 0%, #3c3c3c 100%)'
+                      : 'linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%)',
                   '&:hover': {
                     transform: 'translateY(-2px)',
                     boxShadow: 3

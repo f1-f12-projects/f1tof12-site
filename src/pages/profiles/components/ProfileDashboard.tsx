@@ -44,6 +44,7 @@ const ProfileDashboard: React.FC<ProfileDashboardProps> = ({ selectedRequirement
   const fetchProfileCounts = async (requirementId: number) => {
     try {
       setLoading(true);
+      // To fetch records from profile_profiles table
       const endpoint = `${process.env.REACT_APP_REQUIREMENTS_GET_PROFILE_COUNTS_ENDPOINT}`.replace('{requirement_id}', requirementId.toString());
       const response = await apiService.get<any>(endpoint);
       const data = Array.isArray(response) ? response : (response?.data || []);
@@ -129,7 +130,7 @@ const ProfileDashboard: React.FC<ProfileDashboardProps> = ({ selectedRequirement
   }, [profileStatuses]);
   if (!selectedRequirement) {
     return (
-      <Paper sx={{ p: 0, borderRadius: 3, overflow: 'hidden', background: 'linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%)' }}>
+      <Paper sx={{ p: 0, borderRadius: 3, overflow: 'hidden', background: (theme) => theme.palette.mode === 'dark' ? 'linear-gradient(135deg, #2c2c2c 0%, #3c3c3c 100%)' : 'linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%)' }}>
         <Box sx={{ p: 6, textAlign: 'center' }}>
           <Typography variant="h5" sx={{ fontWeight: 700, mb: 2, color: 'text.primary' }}>
             📊 Profile Stage Dashboard
@@ -145,7 +146,7 @@ const ProfileDashboard: React.FC<ProfileDashboardProps> = ({ selectedRequirement
   return (
     <Paper sx={{ p: 0, borderRadius: 3, overflow: 'hidden', background: 'linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%)' }}>
       <Box>
-        <Box sx={{ p: 3, background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)', color: 'white' }}>
+        <Box sx={{ p: 3, background: (theme) => theme.palette.mode === 'dark' ? 'linear-gradient(135deg, #424242 0%, #616161 100%)' : 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)', color: 'white' }}>
           <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>
             📊 Profile Stage Dashboard
           </Typography>
@@ -206,7 +207,7 @@ const ProfileDashboard: React.FC<ProfileDashboardProps> = ({ selectedRequirement
               <Card sx={{ 
                 textAlign: 'center', 
                 p: 4,
-                background: 'linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%)',
+                background: (theme) => theme.palette.mode === 'dark' ? 'linear-gradient(135deg, #2c2c2c 0%, #3c3c3c 100%)' : 'linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%)',
                 border: '2px dashed #e0e0e0',
                 borderRadius: 2
               }}>
@@ -222,7 +223,7 @@ const ProfileDashboard: React.FC<ProfileDashboardProps> = ({ selectedRequirement
                   sx={{ 
                     border: 0,
                     borderRadius: 2,
-                    background: 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+                    background: (theme) => theme.palette.mode === 'dark' ? 'linear-gradient(135deg, #2c2c2c 0%, #3c3c3c 100%)' : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
                     boxShadow: 2,
                     transition: 'all 0.2s ease',
                     cursor: 'pointer',

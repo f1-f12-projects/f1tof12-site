@@ -57,7 +57,14 @@ const apiCall = async <T>(method: string, endpoint: string, body?: any): Promise
       throw new Error('Authentication failed. Please try logging in again.');
     }
     const errorData = await response.json().catch(() => ({}));
-    const error = new Error(`HTTP ${response.status}: ${errorData.detail || errorData.message || response.statusText}`);
+    let errorMessage = errorData.detail?.message || errorData.detail || errorData.message || errorData.error;
+    if (!errorMessage) {
+      errorMessage = typeof errorData === 'string' ? errorData : JSON.stringify(errorData);
+    }
+    if (!errorMessage || errorMessage === '{}') {
+      errorMessage = response.statusText;
+    }
+    const error = new Error(errorMessage);
     (error as any).status = response.status;
     (error as any).data = errorData;
     throw error;

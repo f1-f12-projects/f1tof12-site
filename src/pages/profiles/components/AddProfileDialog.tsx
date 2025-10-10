@@ -53,7 +53,7 @@ const AddProfileDialog: React.FC<AddProfileDialogProps> = ({
       }}
     >
       <DialogTitle sx={{ 
-        background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+        background: (theme) => theme.palette.mode === 'dark' ? 'linear-gradient(135deg, #424242 0%, #616161 100%)' : 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
         color: 'white',
         fontSize: '1.25rem', 
         fontWeight: 600,
@@ -61,7 +61,7 @@ const AddProfileDialog: React.FC<AddProfileDialogProps> = ({
       }}>
         👤 Add New Profile
       </DialogTitle>
-      <DialogContent sx={{ p: 3, backgroundColor: '#fafafa' }}>
+      <DialogContent sx={{ p: 3, backgroundColor: (theme) => theme.palette.mode === 'dark' ? '#2c2c2c' : '#fafafa' }}>
         <Grid container spacing={2.5} sx={{ mt: 0.5 }}>
           {FORM_FIELDS.map(({ field, label, type, xs, sm }) => (
             <FormField
@@ -79,7 +79,7 @@ const AddProfileDialog: React.FC<AddProfileDialogProps> = ({
           ))}
         </Grid>
       </DialogContent>
-      <DialogActions sx={{ p: 2.5, backgroundColor: '#f5f5f5', gap: 1 }}>
+      <DialogActions sx={{ p: 2.5, backgroundColor: (theme) => theme.palette.mode === 'dark' ? '#424242' : '#f5f5f5', gap: 1 }}>
         <Button 
           onClick={onClose}
           variant="outlined"
@@ -93,9 +93,9 @@ const AddProfileDialog: React.FC<AddProfileDialogProps> = ({
           disabled={submitting}
           sx={{
             borderRadius: 2,
-            background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+            background: (theme) => theme.palette.mode === 'dark' ? 'linear-gradient(135deg, #424242 0%, #616161 100%)' : 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
             '&:hover': {
-              background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)'
+              background: (theme) => theme.palette.mode === 'dark' ? 'linear-gradient(135deg, #616161 0%, #757575 100%)' : 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)'
             }
           }}
         >

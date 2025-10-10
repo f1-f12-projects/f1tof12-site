@@ -39,5 +39,15 @@ export const profileStatusService = {
   getStatusById: async (id: number): Promise<string | undefined> => {
     const statuses = await profileStatusService.getProfileStatuses();
     return statuses.find(status => status.id === id)?.status;
+  },
+
+  getIdByStatus: async (statusName: string): Promise<number | undefined> => {
+    const statuses = await profileStatusService.getProfileStatuses();
+    return statuses.find(status => status.status === statusName)?.id;
+  },
+
+  getStageById: async (id: number): Promise<string | undefined> => {
+    const statuses = await profileStatusService.getProfileStatuses();
+    return statuses.find(status => status.id === id)?.stage;
   }
 };

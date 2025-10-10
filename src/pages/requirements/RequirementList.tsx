@@ -21,7 +21,7 @@ const RequirementList: React.FC = () => {
   const { checkAuthentication } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
-  const [showActiveOnly, setShowActiveOnly] = useState(false);
+  const [showActiveOnly, setShowActiveOnly] = useState(true);
   const [requirements, setRequirements] = useState<Requirement[]>([]);
   const [statuses, setStatuses] = useState<RequirementStatus[]>([]);
   const [users, setUsers] = useState<User[]>([]);

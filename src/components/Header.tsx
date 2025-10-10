@@ -47,9 +47,20 @@ const Header: React.FC = () => {
           </Typography>
         </Box>
         <ThemeToggle />
-        {isAuthenticated && userData && (
-          <Typography variant="body2" sx={{ ml: 2, mr: 1 }}>
-            Hi, {userData.givenName}
+        {isAuthenticated && (
+          <Typography 
+            variant="body1" 
+            sx={{ 
+              ml: 2, 
+              mr: 1, 
+              color: 'white',
+              fontWeight: 500,
+              backgroundColor: 'rgba(255,255,255,0.1)',
+              px: 1,
+              borderRadius: 1
+            }}
+          >
+            Hi, {userData?.givenName || username || 'User'}
           </Typography>
         )}
         <Button 
