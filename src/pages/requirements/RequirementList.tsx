@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Container, Paper, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Box, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Button, Chip, Avatar, Stack, Card, ToggleButton, ToggleButtonGroup, CircularProgress, MenuItem, Checkbox, TablePagination, FormControlLabel, Radio } from '@mui/material';
+import { Container, Paper, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Box, IconButton, Button, Chip, Avatar, Stack, Card, ToggleButton, ToggleButtonGroup, CircularProgress, MenuItem, Checkbox, TablePagination, FormControlLabel } from '@mui/material';
 import { Search, Assignment, Clear, Visibility, PersonAdd } from '@mui/icons-material';
 import RequirementViewDialog from '../../components/RequirementViewDialog';
+import AssignRecruiterDialog from '../../components/AssignRecruiterDialog';
 import { Requirement } from '../../models/Requirement';
 import { RequirementStatus } from '../../models/RequirementStatus';
 import { requirementService } from '../../services/requirementService';
@@ -36,6 +37,9 @@ const RequirementList: React.FC = () => {
   const [viewRequirement, setViewRequirement] = useState<Requirement | null>(null);
   const [assignRequirement, setAssignRequirement] = useState<Requirement | null>(null);
   const [assignForm, setAssignForm] = useState({ recruiter_name: '' });
+  const [assignedUsers, setAssignedUsers] = useState<{ username: string; given_name: string | null; family_name: string | null }[]>([]);
+  const [unassignedUsers, setUnassignedUsers] = useState<User[]>([]);
+  const [unassignLoading, setUnassignLoading] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -119,10 +123,49 @@ const RequirementList: React.FC = () => {
     setViewOpen(true);
   };
 
-  const showAssignRecruiterDialog = (requirement: Requirement) => {
+  const showAssignRecruiterDialog = async (requirement: Requirement) => {
     setAssignRequirement(requirement);
     setAssignForm({ recruiter_name: requirement.recruiter_name || '' });
+    await loadAssignedUsers(requirement.requirement_id);
     setAssignOpen(true);
+  };
+
+  const loadAssignedUsers = async (requirementId: number) => {
+    try {
+      const recruiters = await requirementService.getRecruiterNames(requirementId);
+      const recruitersWithDetails = await Promise.all(
+        recruiters.map(async (username: string) => {
+          const userDetails = await userService.getUserDetails(username);
+          return {
+            username,
+            given_name: userDetails?.given_name || null,
+            family_name: userDetails?.family_name || null
+          };
+        })
+      );
+      setAssignedUsers(recruitersWithDetails);
+      
+      const assignedUsernames = new Set(recruiters);
+      const filteredUsers = users.filter(user => !assignedUsernames.has(user.username));
+      setUnassignedUsers(filteredUsers);
+    } catch (error) {
+      console.error('Error loading assigned users:', error);
+      setAssignedUsers([]);
+      setUnassignedUsers(users);
+    }
+  };
+
+  const handleUnassign = async (recruiterName: string) => {
+    if (!assignRequirement) return;
+    setUnassignLoading(true);
+    try {
+      await requirementService.changeWorkingStatus(assignRequirement.requirement_id, recruiterName, "No");
+      await loadAssignedUsers(assignRequirement.requirement_id);
+    } catch (error) {
+      console.error('Error unassigning recruiter:', error);
+    } finally {
+      setUnassignLoading(false);
+    }
   };
 
   const handleAssignSave = async () => {
@@ -130,11 +173,12 @@ const RequirementList: React.FC = () => {
       setAssignLoading(true);
       await handleApiResponse(
         () => requirementService.assignRecruiter(assignRequirement.requirement_id, assignForm.recruiter_name),
-        () => {
+        async () => {
           setRequirements(prev => prev.map(r => 
             r.requirement_id === assignRequirement.requirement_id ? { ...r, recruiter_name: assignForm.recruiter_name } : r
           ));
-          setAssignOpen(false);
+          await loadAssignedUsers(assignRequirement.requirement_id);
+          setAssignForm({ recruiter_name: '' });
         }
       );
       setAssignLoading(false);
@@ -384,61 +428,19 @@ const RequirementList: React.FC = () => {
           }}
         />
 
-        <Dialog 
-          open={assignOpen} 
-          onClose={() => setAssignOpen(false)} 
-          maxWidth="sm" 
-          fullWidth
-          PaperProps={{ sx: { borderRadius: 3 } }}
-        >
-          <DialogTitle sx={{ pb: 4, fontWeight: 600 }}>
-            Assign Recruiter
-          </DialogTitle>
-          <DialogContent sx={{ pt: 3 }}>
-            {users.length === 0 ? (
-              <Typography>No users available</Typography>
-            ) : (
-              <TableContainer>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Select</TableCell>
-                      <TableCell>First Name</TableCell>
-                      <TableCell>Last Name</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {users.map(user => (
-                      <TableRow key={user.username}>
-                        <TableCell>
-                          <Radio
-                            checked={assignForm.recruiter_name === user.username}
-                            onChange={() => setAssignForm({ recruiter_name: user.username })}
-                          />
-                        </TableCell>
-                        <TableCell>{user.given_name || '-'}</TableCell>
-                        <TableCell>{user.family_name || '-'}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            )}
-          </DialogContent>
-          <DialogActions sx={{ p: 3, pt: 2 }}>
-            <Button onClick={() => setAssignOpen(false)} sx={{ borderRadius: 2 }}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleAssignSave} 
-              variant="contained" 
-              disabled={assignLoading}
-              sx={{ borderRadius: 2, px: 3 }}
-            >
-              {assignLoading ? <CircularProgress size={20} /> : 'Assign'}
-            </Button>
-          </DialogActions>
-        </Dialog>
+        <AssignRecruiterDialog
+          open={assignOpen}
+          onClose={() => setAssignOpen(false)}
+          assignedUsers={assignedUsers}
+          unassignedUsers={unassignedUsers}
+          assignForm={assignForm}
+          onAssignFormChange={setAssignForm}
+          onSave={handleAssignSave}
+          loading={assignLoading}
+          unassignLoading={unassignLoading}
+          requirement={assignRequirement}
+          onUnassign={handleUnassign}
+        />
       </Card>
     </Container>
   );

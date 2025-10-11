@@ -86,6 +86,24 @@ export const requirementService = {
     return response;
   },
 
+  async getRecruiterNames(requirement_id: number): Promise<string[]> {
+    try {
+      const endpoint = process.env.REACT_APP_REQUIREMENTS_GET_RECRUITER_ASSIGNED_ENDPOINT!.replace('{requirement_id}', requirement_id.toString());
+      const response = await apiService.get<ApiResponse<string[]>>(endpoint);
+      return response.success && response.data ? response.data : [];
+    } catch (error) {
+      console.error('Error fetching recruiter names:', error);
+      return [];
+    }
+  },
+
+  async changeWorkingStatus(requirement_id: number, recruiter_name: string, actively_working: string): Promise<ApiResponse> {
+    const endpoint = process.env.REACT_APP_REQUIREMENT_CHANGE_WORKING_STATUS_ENDPOINT!
+      .replace('{requirement_id}', requirement_id.toString())
+      .replace('{recruiter_name}', recruiter_name);
+    return await apiService.put<ApiResponse>(endpoint, { actively_working });
+  },
+
   clearCache(): void {
     cacheService.delete(CACHE_KEY);
   }
