@@ -1,12 +1,15 @@
 import { UserResponse } from '../models/User';
 import { ApiResponse } from '../models/ApiResponse';
+import { User } from '../models/User';
 import { apiService } from './apiService';
 import { cacheService } from './cacheService';
 
 const USERS_CACHE_KEY = 'users';
+const USER_CACHE_PREFIX = 'user_';
 
 cacheService.configure({
-  [USERS_CACHE_KEY]: { ttl: 5 * 60 * 1000, persistent: false }
+  [USERS_CACHE_KEY]: { ttl: 5 * 60 * 1000, persistent: false },
+  [USER_CACHE_PREFIX]: { ttl: 5 * 60 * 1000, persistent: false }
 });
 
 export const userService = {
@@ -53,7 +56,20 @@ export const userService = {
     return response;
   },
 
-  async getUserDetails(username: string): Promise<{ given_name: string | null; family_name: string | null } | null> {
+  async getUserDetails(username: string): Promise<User | null> {
+    const cacheKey = `${USER_CACHE_PREFIX}${username}`;
+    const cached = cacheService.get(cacheKey) as User | null;
+    if (cached) return cached;
+    
+    const response = await apiService.get<ApiResponse>(process.env.REACT_APP_GET_USER_ENDPOINT?.replace('{user_name}', username) || '');
+    if (response.success && response.data) {
+      cacheService.set(cacheKey, response.data);
+      return response.data;
+    }
+    return null;
+  },
+
+  async getUserName(username: string): Promise<{ given_name: string | null; family_name: string | null } | null> {
     const usersResponse = await this.getUsers();
     if (usersResponse.success && usersResponse.data) {
       const users = Array.isArray(usersResponse.data) ? usersResponse.data : usersResponse.data.users;

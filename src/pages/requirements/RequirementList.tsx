@@ -135,7 +135,7 @@ const RequirementList: React.FC = () => {
       const recruiters = await requirementService.getRecruiterNames(requirementId);
       const recruitersWithDetails = await Promise.all(
         recruiters.map(async (username: string) => {
-          const userDetails = await userService.getUserDetails(username);
+          const userDetails = await userService.getUserName(username);
           return {
             username,
             given_name: userDetails?.given_name || null,

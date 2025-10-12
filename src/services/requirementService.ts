@@ -18,6 +18,11 @@ export const requirementService = {
     return response;
   },
 
+  async getOpenRequirements(company_id: number): Promise<ApiResponse<Requirement[]>> {
+    const endpoint = process.env.REACT_APP_REQUIREMENTS_GET_OPEN_BY_COMPANY_ENDPOINT!.replace('{company_id}', company_id.toString());
+    return await apiService.get<ApiResponse<Requirement[]>>(endpoint);
+  },
+
   async getRequirement(id: number): Promise<ApiResponse<Requirement>> {
     const endpoint = process.env.REACT_APP_REQUIREMENTS_FETCH_ENDPOINT!.replace('{requirement_id}', id.toString());
     return await apiService.get<ApiResponse<Requirement>>(endpoint);

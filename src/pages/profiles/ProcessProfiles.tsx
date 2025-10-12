@@ -134,12 +134,9 @@ const ProcessProfiles: React.FC = () => {
   const loadRequirements = async () => {
     setLoading(true);
     try {
-      const response = await requirementService.getRequirements();
+      const response = await requirementService.getOpenRequirements(selectedCompanyId as number);
       if (response.success && response.data) {
-        const openRequirements = response.data.filter(
-          req => req.company_id === selectedCompanyId && req.status_id !== 4 // Assuming status_id 4 is closed
-        );
-        setRequirements(openRequirements);
+        setRequirements(response.data);
       }
     } catch (error) {
       showAlert('Failed to load requirements', 'error');

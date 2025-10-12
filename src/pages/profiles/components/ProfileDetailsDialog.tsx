@@ -202,7 +202,7 @@ const ProfileDetailsDialog: React.FC<ProfileDetailsDialogProps> = ({ open, onClo
                   background: (theme) => theme.palette.mode === 'dark' ? 'linear-gradient(135deg, #424242 0%, #616161 100%)' : 'linear-gradient(135deg, #f5f5f5 0%, #e8eaf6 100%)', 
                   borderRadius: 4,
                   boxShadow: 'none',
-                  border: '1px solid #e0e0e0',
+                  border: (theme) => `1px solid ${theme.palette.mode === 'dark' ? '#555' : '#e0e0e0'}`,
                   '&:hover': { 
                     background: (theme) => theme.palette.mode === 'dark' ? 'linear-gradient(135deg, #616161 0%, #757575 100%)' : 'linear-gradient(135deg, #e8eaf6 0%, #c5cae9 100%)',
                     borderColor: (theme) => theme.palette.mode === 'dark' ? '#90caf9' : '#9c27b0'
@@ -210,11 +210,11 @@ const ProfileDetailsDialog: React.FC<ProfileDetailsDialogProps> = ({ open, onClo
                   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                   ...((index === 0 || index === 1) && { mt: 2 }) 
                 }}>
-                  <Typography variant="h6" sx={{ fontWeight: 500, mb: 2, color: '#6a1b9a' }}>
+                  <Typography variant="h6" sx={{ fontWeight: 500, mb: 2, color: (theme) => theme.palette.mode === 'dark' ? theme.palette.primary.main : '#6a1b9a' }}>
                     {section.title}
                   </Typography>
                   {section.items.map((item, itemIndex) => (
-                    <Typography key={itemIndex} sx={{ mb: itemIndex < section.items.length - 1 ? 1 : 0, color: '#424242', display: 'flex', alignItems: 'center' }}>
+                    <Typography key={itemIndex} sx={{ mb: itemIndex < section.items.length - 1 ? 1 : 0, color: (theme) => theme.palette.text.primary, display: 'flex', alignItems: 'center' }}>
                       <strong>{item.label}</strong> {item.value}
                       {(item.label === 'Email: ' || item.label === 'Phone: ') && (
                         <IconButton size="small" onClick={() => copyToClipboard(item.value, item.label)} sx={{ ml: 0.5, p: 0.5 }}>
