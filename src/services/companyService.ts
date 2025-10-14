@@ -4,6 +4,7 @@ import { apiService } from './apiService';
 import { cacheService } from './cacheService';
 
 const CACHE_KEY = 'companies';
+const ACTIVE_COMPANIES_CACHE_KEY = 'active_companies';
 
 export const companyService = {
   async getCompanies(): Promise<ApiResponse<Company[]>> {
@@ -19,11 +20,25 @@ export const companyService = {
     return response;
   },
 
+  async getActiveCompanies(): Promise<ApiResponse<Company[]>> {
+    const cached = cacheService.get(ACTIVE_COMPANIES_CACHE_KEY);
+    if (cached) return cached;
+    
+    const response: ApiResponse<Company[]> = await apiService.get<ApiResponse<Company[]>>(process.env.REACT_APP_GET_ACTIVE_COMPANIES_ENDPOINT!);
+    
+    if (response.success) {
+      cacheService.set(ACTIVE_COMPANIES_CACHE_KEY, response);
+    }
+    
+    return response;
+  },
+
   async registerCompany(company: Omit<Company, 'id'>): Promise<ApiResponse<Company>> {
     const response = await apiService.post<ApiResponse<Company>>(process.env.REACT_APP_REGISTER_ENDPOINT!, company);
     
     if (response.success) {
       cacheService.delete(CACHE_KEY);
+      cacheService.delete(ACTIVE_COMPANIES_CACHE_KEY);
     }
     
     return response;
@@ -35,6 +50,7 @@ export const companyService = {
     
     if (response.success) {
       cacheService.delete(CACHE_KEY);
+      cacheService.delete(ACTIVE_COMPANIES_CACHE_KEY);
     }
     
     return response;
@@ -42,5 +58,6 @@ export const companyService = {
 
   clearCache(): void {
     cacheService.delete(CACHE_KEY);
+    cacheService.delete(ACTIVE_COMPANIES_CACHE_KEY);
   }
 };

@@ -109,6 +109,11 @@ export const requirementService = {
     return await apiService.put<ApiResponse>(endpoint, { actively_working });
   },
 
+  async addComment(requirement_id: number, comment: string): Promise<ApiResponse> {
+    const endpoint = process.env.REACT_APP_REQUIREMENTS_ADD_COMMENT_ENDPOINT!.replace('{requirement_id}', requirement_id.toString());
+    return await apiService.put<ApiResponse>(endpoint, { remarks: comment });
+  },
+
   clearCache(): void {
     cacheService.delete(CACHE_KEY);
   }

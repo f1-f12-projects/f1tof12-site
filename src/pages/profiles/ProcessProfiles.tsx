@@ -107,6 +107,7 @@ const ProcessProfiles: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    setSelectedRequirement(null);
     if (selectedCompanyId) {
       loadRequirements();
     } else {
@@ -121,10 +122,9 @@ const ProcessProfiles: React.FC = () => {
 
   const loadCompanies = async () => {
     try {
-      const response = await companyService.getCompanies();
+      const response = await companyService.getActiveCompanies();
       if (response.success && response.data) {
-        const activeCompanies = response.data.filter(company => company.status === 'active');
-        setCompanies(getTopCompanies(activeCompanies));
+        setCompanies(getTopCompanies(response.data));
       }
     } catch (error) {
       showAlert('Failed to load companies', 'error');
@@ -137,6 +137,9 @@ const ProcessProfiles: React.FC = () => {
       const response = await requirementService.getOpenRequirements(selectedCompanyId as number);
       if (response.success && response.data) {
         setRequirements(response.data);
+      } else {
+        setRequirements([]);
+        setSelectedRequirement(null);
       }
     } catch (error) {
       showAlert('Failed to load requirements', 'error');
@@ -144,8 +147,6 @@ const ProcessProfiles: React.FC = () => {
       setLoading(false);
     }
   };
-
-
 
   return (
     <Container maxWidth={false} sx={{ py: 4 }}>
@@ -182,6 +183,7 @@ const ProcessProfiles: React.FC = () => {
             </Grid>
             <Grid item xs={12} md={9}>
               <ProfileDashboard
+                key={selectedRequirement?.requirement_id}
                 selectedRequirement={selectedRequirement}
                 onAddProfile={() => setShowAddForm(true)}
               />

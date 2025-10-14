@@ -36,6 +36,8 @@ const RequirementViewDialog: React.FC<RequirementViewDialogProps> = ({
   const [remarks, setRemarks] = useState('');
   const [editingProject, setEditingProject] = useState(false);
   const [projectData, setProjectData] = useState({ location: '', budget: '', expected_billing_date: '' });
+  const [showCommentDialog, setShowCommentDialog] = useState(false);
+  const [newComment, setNewComment] = useState('');
   
   const canEditStatus = userRole === 'lead' || userRole === 'manager';
   
@@ -122,6 +124,27 @@ const RequirementViewDialog: React.FC<RequirementViewDialogProps> = ({
         setEditingProject(false);
       } catch (error) {
         console.error('Error updating project details:', error);
+      }
+      setLoading(false);
+    }
+  };
+
+  const handleCommentSave = async () => {
+    if (requirement && newComment.trim()) {
+      const { requirementService } = await import('../services/requirementService');
+      setLoading(true);
+      try {
+        const response = await requirementService.addComment(requirement.requirement_id, newComment.trim());
+        if (response.success && onRequirementUpdate) {
+          const updatedReq = await requirementService.getRequirement(requirement.requirement_id);
+          if (updatedReq.success && updatedReq.data) {
+            onRequirementUpdate(updatedReq.data);
+          }
+        }
+        setNewComment('');
+        setShowCommentDialog(false);
+      } catch (error) {
+        console.error('Error adding comment:', error);
       }
       setLoading(false);
     }
@@ -341,18 +364,25 @@ const RequirementViewDialog: React.FC<RequirementViewDialogProps> = ({
               </Box>
             </Card>
 
-            {requirement.remarks && (
-              <Card sx={{ p: 3, borderRadius: 3, background: theme.palette.background.default, border: `1px solid ${isDark ? '#ba68c8' : '#9c27b0'}` }}>
-                <Typography variant="h6" sx={{ mb: 2, color: isDark ? '#ba68c8' : '#9c27b0', fontWeight: 600 }}>
+            <Card sx={{ p: 3, borderRadius: 3, background: theme.palette.background.default, border: `1px solid ${isDark ? '#ba68c8' : '#9c27b0'}` }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="h6" sx={{ color: isDark ? '#ba68c8' : '#9c27b0', fontWeight: 600 }}>
                   Remarks
                 </Typography>
-                <Box sx={{ p: 3, borderRadius: 2, background: isDark ? 'rgba(186, 104, 200, 0.2)' : 'rgba(156, 39, 176, 0.08)', border: `1px solid ${isDark ? '#ba68c8' : '#9c27b0'}` }}>
-                  <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>
-                    {requirement.remarks}
-                  </Typography>
-                </Box>
-              </Card>
-            )}
+                <Button
+                  size="small"
+                  onClick={() => setShowCommentDialog(true)}
+                  sx={{ minWidth: 'auto', p: 0.5 }}
+                >
+                  <Edit fontSize="small" />
+                </Button>
+              </Box>
+              <Box sx={{ p: 3, borderRadius: 2, background: isDark ? 'rgba(186, 104, 200, 0.2)' : 'rgba(156, 39, 176, 0.08)', border: `1px solid ${isDark ? '#ba68c8' : '#9c27b0'}` }}>
+                <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.7 }}>
+                  {requirement.remarks || 'No remarks available'}
+                </Typography>
+              </Box>
+            </Card>
           </Stack>
         )}
       </DialogContent>
@@ -399,6 +429,28 @@ const RequirementViewDialog: React.FC<RequirementViewDialogProps> = ({
           <Button onClick={() => setShowConfirm(false)}>Cancel</Button>
           <Button onClick={handleStatusSave} variant="contained" disabled={loading}>
             {loading ? <CircularProgress size={20} /> : 'Confirm'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={showCommentDialog} onClose={() => setShowCommentDialog(false)}>
+        <DialogTitle>Add Comment</DialogTitle>
+        <DialogContent>
+          <TextField
+            fullWidth
+            multiline
+            rows={4}
+            label="Comment"
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
+            placeholder="Enter your comment..."
+            sx={{ mt: 1 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowCommentDialog(false)}>Cancel</Button>
+          <Button onClick={handleCommentSave} variant="contained" disabled={loading || !newComment.trim()}>
+            {loading ? <CircularProgress size={20} /> : 'Save'}
           </Button>
         </DialogActions>
       </Dialog>
