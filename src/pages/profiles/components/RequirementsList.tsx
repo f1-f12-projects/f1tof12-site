@@ -72,6 +72,9 @@ const RequirementsList: React.FC<RequirementsListProps> = ({
                       <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>
                         {requirement.key_skill}
                       </Typography>
+                      <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem', mb: 0.5 }}>
+                        ID: {requirement.requirement_id}
+                      </Typography>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <Chip 
                           label={`📍 ${requirement.location || 'Not specified'}`} 
@@ -82,7 +85,7 @@ const RequirementsList: React.FC<RequirementsListProps> = ({
                             fontSize: '0.7rem'
                           }} 
                         />
-                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.7rem', textAlign: 'right' }}>
                           Posted {(() => {
                             const days = Math.floor((new Date().getTime() - new Date(requirement.created_date).getTime()) / (1000 * 60 * 60 * 24));
                             if (days < 7) return `${days} days ago`;
