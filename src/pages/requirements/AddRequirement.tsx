@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Container, Paper, Typography, TextField, Button, Box, MenuItem, Card, CircularProgress } from '@mui/material';
+import { Container, Paper, Typography, TextField, Button, Box, MenuItem, Card, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { Save, ArrowBack } from '@mui/icons-material';
 import { requirementService } from '../../services/requirementService';
 import { companyService } from '../../services/companyService';
@@ -41,8 +41,8 @@ const AddRequirement: React.FC = () => {
   const { checkAuthentication } = useAuth();
   const [loading, setLoading] = useState(false);
   const [companies, setCompanies] = useState<Company[]>([]);
-  const [spocs, setSpocs] = useState<SPOC[]>([]);
   const [filteredSpocs, setFilteredSpocs] = useState<SPOC[]>([]);
+  const [successDialog, setSuccessDialog] = useState<{ open: boolean; requirementId?: string }>({ open: false });
   
   const [form, setForm] = useState<RequirementForm>({
     key_skill: '',
@@ -75,13 +75,12 @@ const AddRequirement: React.FC = () => {
 
   useEffect(() => {
     if (form.company_id) {
-      const filtered = spocs.filter(spoc => spoc.company_id === Number(form.company_id) && spoc.status === 'active');
-      setFilteredSpocs(filtered);
+      loadSPOCsByCompany(Number(form.company_id));
       setForm(prev => ({ ...prev, spoc_id: '' }));
     } else {
       setFilteredSpocs([]);
     }
-  }, [form.company_id, spocs]);
+  }, [form.company_id]);
 
   const loadData = async () => {
     await handleApiResponse(
@@ -89,10 +88,12 @@ const AddRequirement: React.FC = () => {
       (response) => setCompanies((response || []).filter(c => c.status === 'active')),
       () => alert.error('Failed to load companies')
     );
+  };
 
+  const loadSPOCsByCompany = async (companyId: number) => {
     await handleApiResponse(
-      () => spocService.getSPOCs(),
-      (response) => setSpocs(response || []),
+      () => spocService.getSPOCsByCompany(companyId),
+      (response) => setFilteredSpocs((response || []).filter(s => s.status === 'active')),
       () => alert.error('Failed to load SPOCs')
     );
   };
@@ -158,14 +159,12 @@ const AddRequirement: React.FC = () => {
     if (form.budget) submitData.budget = Number(form.budget);
     if (form.req_cust_ref_id) submitData.req_cust_ref_id = form.req_cust_ref_id;
 
-    await handleApiResponse(
-      () => requirementService.createRequirement(submitData),
-      () => {
-        alert.success('Requirement created successfully');
-        navigate('/requirements');
-      },
-      () => alert.error('Failed to create requirement')
-    );
+    const response = await requirementService.createRequirement(submitData);
+    if (response.success && response.data) {
+      setSuccessDialog({ open: true, requirementId: String(response.data.requirement_id) });
+    } else {
+      alert.error('Failed to create requirement');
+    }
     
     setLoading(false);
   };
@@ -248,6 +247,20 @@ const AddRequirement: React.FC = () => {
           </Box>
         </Box>
       </Card>
+      
+      <Dialog open={successDialog.open} onClose={() => setSuccessDialog({ open: false })}>
+        <DialogTitle>Success</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Requirement created successfully! Requirement ID: {successDialog.requirementId}
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => { setSuccessDialog({ open: false }); navigate('/requirements'); }} variant="contained">
+            OK
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };

@@ -108,7 +108,8 @@ const RequirementList: React.FC = () => {
     requirements.filter(requirement => {
       const searchTermLower = searchTerm.toLowerCase();
       const matchesSearch = (requirement.company_name || '').toLowerCase().includes(searchTermLower) || 
-                           (requirement.key_skill || '').toLowerCase().includes(searchTermLower);
+                           (requirement.key_skill || '').toLowerCase().includes(searchTermLower) ||
+                           requirement.requirement_id.toString().includes(searchTermLower);
       const matchesStatus = statusFilter.length === 0 || (requirement.status_id && statusFilter.includes(requirement.status_id.toString()));
       const matchesActive = !showActiveOnly || (requirement.status_id !== 4 && requirement.status_id !== 5);
       return matchesSearch && matchesStatus && matchesActive;
@@ -231,7 +232,7 @@ const RequirementList: React.FC = () => {
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 4 }}>
             <TextField
               fullWidth
-              placeholder="Search by company or skill..."
+              placeholder="Search by ID, company or skill..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               InputProps={{
@@ -321,6 +322,7 @@ const RequirementList: React.FC = () => {
               <Table>
                 <TableHead>
                   <TableRow sx={tableStyles.headerRow}>
+                    <TableCell sx={tableStyles.headerCell}>ID</TableCell>
                     <TableCell sx={tableStyles.headerCell}>Company</TableCell>
                     <TableCell sx={tableStyles.headerCell}>Key Skill</TableCell>
                     <TableCell sx={tableStyles.headerCell}>Recruiter</TableCell>
@@ -338,11 +340,9 @@ const RequirementList: React.FC = () => {
                       key={requirement.requirement_id}
                       sx={tableStyles.bodyRow(index === paginatedRequirements.length - 1)}
                     >
+                      <TableCell sx={tableStyles.bodyCell}>{requirement.requirement_id}</TableCell>
                       <TableCell sx={tableStyles.bodyCell}>
                         <Stack direction="row" alignItems="center" spacing={2}>
-                          <Avatar sx={tableStyles.avatar}>
-                            {(requirement.company_name || 'C')[0].toUpperCase()}
-                          </Avatar>
                           <Typography variant="subtitle1" fontWeight={500}>
                             {requirement.company_name || 'N/A'}
                           </Typography>
