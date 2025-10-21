@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.0] - 2025-01-27
+
+### Enhanced
+- Enhancements to Profile & Requirements
+
 ## [1.3.0] - 2025-09-26
 
 ### Added
