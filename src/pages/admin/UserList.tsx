@@ -36,10 +36,10 @@ const UserList: React.FC = () => {
     loadUsers();
   }, [isAuthenticated, navigate]);
 
-  const loadUsers = async () => {
+  const loadUsers = async (clearCache = false) => {
     setLoading(true);
     await handleApiResponse(
-      () => userService.getUsers(),
+      () => userService.getUsers(clearCache),
       (data) => {
         setUsers(Array.isArray(data) ? data : data?.users || []);
       },
@@ -191,7 +191,7 @@ const UserList: React.FC = () => {
           </FormControl>
         </Box>
         <Box sx={{ display: 'flex', gap: 1 }}>
-          <Button variant="outlined" onClick={loadUsers} disabled={loading}>
+          <Button variant="outlined" onClick={() => loadUsers(true)} disabled={loading}>
             <Refresh sx={{ mr: 1 }} />Refresh
           </Button>
           <Button variant="contained" onClick={() => navigate('/admin/users/create')}>Create User</Button>

@@ -49,5 +49,16 @@ export const profileStatusService = {
   getStageById: async (id: number): Promise<string | undefined> => {
     const statuses = await profileStatusService.getProfileStatuses();
     return statuses.find(status => status.id === id)?.stage;
+  },
+
+  getStageList: async (): Promise<string[]> => {
+    const statuses = await profileStatusService.getProfileStatuses();
+    const stages = Array.from(new Set(statuses.map(status => status.stage)));
+    return stages;
+  },
+
+  getStatusesByStage: async (stageName: string): Promise<string[]> => {
+    const statuses = await profileStatusService.getProfileStatuses();
+    return statuses.filter(status => status.stage === stageName).map(status => status.status);
   }
 };

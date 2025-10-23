@@ -59,7 +59,7 @@ const AddProfileDialog: React.FC<AddProfileDialogProps> = ({
         fontWeight: 600,
         py: 2
       }}>
-        👤 Add New Profile
+        👤 Add New Candidate
       </DialogTitle>
       <DialogContent sx={{ p: 3, backgroundColor: (theme) => theme.palette.mode === 'dark' ? '#2c2c2c' : '#fafafa' }}>
         <Grid container spacing={2.5} sx={{ mt: 0.5 }}>
@@ -99,7 +99,7 @@ const AddProfileDialog: React.FC<AddProfileDialogProps> = ({
             }
           }}
         >
-          {submitting ? <CircularProgress size={20} color="inherit" /> : 'Add Profile'}
+          {submitting ? <CircularProgress size={20} color="inherit" /> : 'Add Candidate'}
         </Button>
       </DialogActions>
     </Dialog>

@@ -13,7 +13,11 @@ cacheService.configure({
 });
 
 export const userService = {
-  async getUsers(): Promise<ApiResponse<UserResponse>> {
+  async getUsers(clearCache = false): Promise<ApiResponse<UserResponse>> {
+    if (clearCache) {
+      cacheService.delete(USERS_CACHE_KEY);
+    }
+    
     const cached = cacheService.get(USERS_CACHE_KEY) as ApiResponse<UserResponse> | null;
     if (cached) return cached;
     

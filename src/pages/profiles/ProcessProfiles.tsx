@@ -84,7 +84,7 @@ const ProcessProfiles: React.FC = () => {
       const response = await profileService.createProfile(payload);
       
       if (response.success) {
-        showAlert('Profile added successfully', 'success');
+        showAlert('Candidate added successfully', 'success');
         setShowAddForm(false);
         setFormData({
           name: '', email: '', phone: '', skills: '', experience_years: '',
@@ -93,10 +93,10 @@ const ProcessProfiles: React.FC = () => {
         });
         setErrors({});
       } else {
-        showAlert('Failed to add profile', 'error');
+        showAlert('Failed to add candidate', 'error');
       }
     } catch (error) {
-      showAlert('Error adding profile', 'error');
+      showAlert('Error adding candidate', 'error');
     } finally {
       setSubmitting(false);
     }

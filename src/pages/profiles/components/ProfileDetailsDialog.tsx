@@ -26,7 +26,10 @@ interface ProfileDetailsDialogProps {
 
 const ProfileDetailsDialog: React.FC<ProfileDetailsDialogProps> = ({ open, onClose, profileData, onStatusUpdate }) => {
   const [selectedStatus, setSelectedStatus] = useState<number>(profileData?.status || 1);
+  const [selectedStage, setSelectedStage] = useState<number>(1);
+  const [originalStage, setOriginalStage] = useState<number>(1);
   const [statusOptions, setStatusOptions] = useState<string[]>([]);
+  const [stageOptions, setStageOptions] = useState<string[]>([]);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [statusText, setStatusText] = useState<string>('');
   const [stageText, setStageText] = useState<string>('');
@@ -35,21 +38,31 @@ const ProfileDetailsDialog: React.FC<ProfileDetailsDialogProps> = ({ open, onClo
   const [remarks, setRemarks] = useState<string>('');
 
   useEffect(() => {
-    const loadStatuses = async () => {
+    const loadData = async () => {
       try {
-        const statuses = await profileStatusService.getStatusList();
-        if (Array.isArray(statuses)) {
-          setStatusOptions(statuses);
-        } else {
-          setStatusOptions([]);
+        const stages = await profileStatusService.getStageList();
+        if (Array.isArray(stages)) {
+          setStageOptions(stages);
+          
+          if (profileData?.status) {
+            const currentStage = await profileStatusService.getStageById(profileData.status);
+            const stageIndex = stages.findIndex(stage => stage === currentStage);
+            if (stageIndex !== -1) {
+              setSelectedStage(stageIndex + 1);
+              setOriginalStage(stageIndex + 1);
+              const statuses = await profileStatusService.getStatusesByStage(currentStage!);
+              setStatusOptions(statuses);
+            }
+          }
         }
       } catch (error) {
-        console.error('Error loading statuses:', error);
+        console.error('Error loading data:', error);
         setStatusOptions([]);
+        setStageOptions([]);
       }
     };
-    loadStatuses();
-  }, []);
+    loadData();
+  }, [profileData]);
 
   useEffect(() => {
     if (!profileData) return;
@@ -85,13 +98,30 @@ const ProfileDetailsDialog: React.FC<ProfileDetailsDialogProps> = ({ open, onClo
   
   if (!profileData) return null;
 
+  const handleStageChange = async (newStage: number) => {
+    setSelectedStage(newStage);
+    try {
+      const stageName = stageOptions[newStage - 1];
+      const statuses = await profileStatusService.getStatusesByStage(stageName);
+      setStatusOptions(statuses);
+      setSelectedStatus(1);
+    } catch (error) {
+      console.error('Error loading statuses for stage:', error);
+    }
+  };
+
   const handleStatusChange = (newStatus: number) => {
-    if (newStatus !== profileData.status) {
-      setSelectedStatus(newStatus);
+    setSelectedStatus(newStatus);
+  };
+
+  const handleUpdateClick = () => {
+    if (selectedStatus !== profileData.status || selectedStage !== originalStage) {
       setRemarks('');
       setShowConfirmation(true);
     }
   };
+
+  const hasChanges = selectedStatus !== profileData.status || selectedStage !== originalStage;
 
   const confirmStatusUpdate = () => {
     if (onStatusUpdate) {
@@ -102,6 +132,18 @@ const ProfileDetailsDialog: React.FC<ProfileDetailsDialogProps> = ({ open, onClo
 
   const cancelStatusUpdate = () => {
     setSelectedStatus(profileData.status);
+    setSelectedStage(originalStage);
+    // Reload statuses for original stage
+    const reloadOriginalStage = async () => {
+      try {
+        const stageName = stageOptions[originalStage - 1];
+        const statuses = await profileStatusService.getStatusesByStage(stageName);
+        setStatusOptions(statuses);
+      } catch (error) {
+        console.error('Error reloading original stage statuses:', error);
+      }
+    };
+    reloadOriginalStage();
     setShowConfirmation(false);
   };
 
@@ -146,13 +188,13 @@ const ProfileDetailsDialog: React.FC<ProfileDetailsDialogProps> = ({ open, onClo
 
             <Box sx={{ display: 'flex', gap: 1, marginLeft: 'auto' }}>
               <Chip 
-                label={statusText} 
+                label={stageText} 
                 color="primary" 
                 sx={{ fontSize: '0.9rem', fontWeight: 600 }} 
               />
 
               <Chip 
-                label={stageText} 
+                label={statusText} 
                 color="primary" 
                 sx={{ fontSize: '0.9rem', fontWeight: 600 }} 
               />
@@ -265,7 +307,7 @@ const ProfileDetailsDialog: React.FC<ProfileDetailsDialogProps> = ({ open, onClo
         ) : (
           <Card sx={{ p: 4, textAlign: 'center', background: (theme) => theme.palette.mode === 'dark' ? 'linear-gradient(135deg, #2c2c2c 0%, #3c3c3c 100%)' : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)' }}>
             <Typography variant="h6" color="text.secondary">
-              Profile details not available
+              Candidate details not available
             </Typography>
           </Card>
         )}
@@ -273,6 +315,21 @@ const ProfileDetailsDialog: React.FC<ProfileDetailsDialogProps> = ({ open, onClo
       
       <DialogActions sx={{ p: 3, background: (theme) => theme.palette.mode === 'dark' ? 'linear-gradient(135deg, #2c2c2c 0%, #3c3c3c 100%)' : 'linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%)', justifyContent: 'space-between' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <FormControl size="small" sx={{ minWidth: 120 }}>
+            <InputLabel>Stage</InputLabel>
+            <Select
+              value={selectedStage}
+              onChange={(e) => handleStageChange(Number(e.target.value))}
+              label="Stage"
+            >
+              {Array.isArray(stageOptions) && stageOptions.map((option, index) => (
+                <MenuItem key={index} value={index + 1}>
+                  {option}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          
           <FormControl size="small" sx={{ minWidth: 120 }}>
             <InputLabel>Status</InputLabel>
             <Select
@@ -287,7 +344,17 @@ const ProfileDetailsDialog: React.FC<ProfileDetailsDialogProps> = ({ open, onClo
               ))}
             </Select>
           </FormControl>
-
+          
+          {hasChanges && (
+            <Button 
+              onClick={handleUpdateClick}
+              variant="contained"
+              size="small"
+              sx={{ ml: 1 }}
+            >
+              Update
+            </Button>
+          )}
         </Box>
         <Button 
           onClick={onClose}

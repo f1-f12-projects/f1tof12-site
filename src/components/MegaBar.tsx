@@ -40,7 +40,7 @@ const MegaBar: React.FC = () => {
     ],
     main: [
       { label: 'Requirements', path: '/requirements', icon: <People /> },
-      { label: 'Profiles', path: '/profiles', icon: <Event /> },
+      { label: 'Candidate', path: '/profiles', icon: <Event /> },
       { label: 'Reports', path: '/reports', icon: <Assessment /> },
       { label: 'Finance', path: '/company/invoices', icon: <AccountBalance /> },
       { label: 'Admin', path: '/admin/users', icon: <AccountBalance /> }
