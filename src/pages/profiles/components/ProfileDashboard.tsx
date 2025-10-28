@@ -110,40 +110,86 @@ const ProfileDashboard: React.FC<ProfileDashboardProps> = ({ selectedRequirement
         
         <Box sx={{ p: 3 }}>
           <Grid container spacing={2} sx={{ mb: 4 }}>
-            {stages && stages.map((stage, index) => (
-              <Grid item xs={12} sm={6} md={1.5} key={stage}>
-                <Card onClick={() => {
-                  const newStage = selectedStage === stage ? null : stage;
-                  setSelectedStage(newStage);
-                  if (newStage && selectedRequirement) {
-                    loadProfilesByStage(selectedRequirement.requirement_id, newStage);
-                  } else {
-                    setProfileData([]);
-                  }
-                }} sx={{ 
+            {stages && stages.map((stage, index) => {
+              const count = profileCounts[stage] || 0;
+              const isDisabled = count === 0;
+              
+              return (
+                <Grid item xs={12} sm={6} md={3} lg={2} xl={1.5} key={stage}>
+                  <Card onClick={isDisabled ? undefined : () => {
+                    const newStage = selectedStage === stage ? null : stage;
+                    setSelectedStage(newStage);
+                    if (newStage && selectedRequirement) {
+                      loadProfilesByStage(selectedRequirement.requirement_id, newStage);
+                    } else {
+                      setProfileData([]);
+                    }
+                  }} sx={{ 
                   textAlign: 'center', 
-                  p: 1.5,
-                  height: 80,
+                  p: 2,
+                  height: 90,
                   minWidth: 120,
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'center',
-                  background: `linear-gradient(135deg, ${index < 3 ? ['#ff0080', '#8000ff', '#0080ff'][index] : index < 6 ? ['#ff8000', '#ffff00', '#80ff00'][index - 3] : ['#00ff80', '#ff4040'][index - 6]} 0%, ${index < 3 ? ['#ff4080', '#a040ff', '#4080ff'][index] : index < 6 ? ['#ffa040', '#ffff40', '#a0ff40'][index - 3] : ['#40ff80', '#ff6060'][index - 6]} 100%)`,
-                  border: selectedStage === stage ? '3px solid #000' : 0,
-                  boxShadow: selectedStage === stage ? 4 : 2,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                  '&:hover': { transform: 'scale(1.05)' }
+                  position: 'relative',
+                  background: isDisabled 
+                    ? 'linear-gradient(135deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.1) 100%)'
+                    : selectedStage === stage 
+                      ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                      : `linear-gradient(135deg, ${[
+                          'rgba(99, 102, 241, 0.1)', 'rgba(139, 92, 246, 0.1)', 'rgba(59, 130, 246, 0.1)',
+                          'rgba(16, 185, 129, 0.1)', 'rgba(245, 158, 11, 0.1)', 'rgba(239, 68, 68, 0.1)',
+                          'rgba(168, 85, 247, 0.1)', 'rgba(34, 197, 94, 0.1)'
+                        ][index % 8]} 0%, rgba(255, 255, 255, 0.8) 100%)`,
+                  border: isDisabled 
+                    ? '1px solid rgba(0,0,0,0.05)'
+                    : selectedStage === stage ? '2px solid #667eea' : '1px solid rgba(0,0,0,0.1)',
+                  borderRadius: 2,
+                  boxShadow: isDisabled 
+                    ? 'none'
+                    : selectedStage === stage ? '0 8px 25px rgba(102, 126, 234, 0.3)' : '0 2px 8px rgba(0,0,0,0.1)',
+                  cursor: isDisabled ? 'not-allowed' : 'pointer',
+                  opacity: isDisabled ? 0.5 : 1,
+                  transition: 'all 0.3s ease',
+                  zIndex: selectedStage === stage ? 10 : 1,
+                  '&:hover': !isDisabled ? { 
+                    transform: 'translateY(-4px)', 
+                    boxShadow: '0 12px 30px rgba(0,0,0,0.15)',
+                    zIndex: 20,
+                    background: selectedStage === stage 
+                      ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                      : `linear-gradient(135deg, ${[
+                          'rgba(99, 102, 241, 0.2)', 'rgba(139, 92, 246, 0.2)', 'rgba(59, 130, 246, 0.2)',
+                          'rgba(16, 185, 129, 0.2)', 'rgba(245, 158, 11, 0.2)', 'rgba(239, 68, 68, 0.2)',
+                          'rgba(168, 85, 247, 0.2)', 'rgba(34, 197, 94, 0.2)'
+                        ][index % 8]} 0%, rgba(255, 255, 255, 0.9) 100%)`
+                  } : {}
                 }}>
-                  <Typography variant="h4" sx={{ fontWeight: 700, color: '#000', textShadow: '0 1px 2px rgba(255,255,255,0.8)', fontSize: '1.5rem' }}>
-                    {profileCounts[stage] || 0}
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600, color: '#000', textShadow: '0 1px 1px rgba(255,255,255,0.6)', fontSize: '0.75rem' }}>
-                    {stage}
-                  </Typography>
-                </Card>
-              </Grid>
-            ))}
+                    <Typography variant="h4" sx={{ 
+                      fontWeight: 700, 
+                      color: isDisabled 
+                        ? 'rgba(0,0,0,0.3)'
+                        : selectedStage === stage ? '#fff' : 'primary.main',
+                      fontSize: '1.8rem',
+                      mb: 0.5
+                    }}>
+                      {count}
+                    </Typography>
+                    <Typography variant="body2" sx={{ 
+                      fontWeight: 600, 
+                      color: isDisabled 
+                        ? 'rgba(0,0,0,0.3)'
+                        : selectedStage === stage ? 'rgba(255,255,255,0.9)' : 'text.secondary',
+                      fontSize: '0.8rem',
+                      textTransform: 'capitalize'
+                    }}>
+                      {stage}
+                    </Typography>
+                  </Card>
+                </Grid>
+              );
+            })}
           </Grid>
           
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
@@ -264,7 +310,6 @@ const ProfileDashboard: React.FC<ProfileDashboardProps> = ({ selectedRequirement
           }}
         />
       )}
-
     </Paper>
   );
 };
