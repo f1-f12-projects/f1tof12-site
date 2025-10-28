@@ -1,11 +1,121 @@
-import React, { useState, useEffect } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Box, Typography, Grid, Card, Chip, Avatar, Divider, Select, MenuItem, FormControl, InputLabel, IconButton, Snackbar, TextField } from '@mui/material';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Box, Typography, Grid, Card, Chip, IconButton, Snackbar, TextField, Select, MenuItem, FormControl, InputLabel, CircularProgress } from '@mui/material';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { Profile } from '../../../models/Profile';
 import { profileStatusService } from '../../../services/profileStatusService';
 import { profileService } from '../../../services/profileService';
-import { ProfileStatus } from '../../../models/ProfileStatus';
 import { formatINR } from '../../../utils/currencyUtils';
+
+interface ProfileContentProps {
+  profile: Profile;
+  copyToClipboard: (text: string, label: string) => void;
+}
+
+const ProfileContent: React.FC<ProfileContentProps> = React.memo(({ profile, copyToClipboard }) => {
+  const sections = useMemo(() => [
+    {
+      title: '📞 Contact Information',
+      items: [
+        { label: 'Email: ', value: profile.email },
+        { label: 'Phone: ', value: profile.phone }
+      ]
+    },
+    {
+      title: '🎯 Professional Details',
+      items: [
+        { label: 'Experience: ', value: `${profile.experience_years} years` },
+        { label: 'Skills: ', value: profile.skills }
+      ]
+    },
+    {
+      title: '📍 Location Preferences',
+      items: [
+        { label: 'Current: ', value: profile.current_location },
+        { label: 'Preferred: ', value: profile.preferred_location }
+      ]
+    },
+    {
+      title: '💰 Compensation & Availability',
+      items: [
+        { label: 'Current CTC: ', value: formatINR(profile.current_ctc) },
+        { label: 'Expected CTC: ', value: formatINR(profile.expected_ctc) },
+        { label: 'Notice Period: ', value: profile.notice_period || 'Not specified' }
+      ]
+    }
+  ], [profile]);
+
+  return (
+    <Grid container spacing={3}>
+      {sections.map((section, index) => (
+        <Grid item xs={12} md={6} key={index}>
+          <Card sx={{ 
+            p: 3, 
+            height: 180, 
+            background: (theme) => theme.palette.mode === 'dark' ? 'linear-gradient(135deg, #424242 0%, #616161 100%)' : 'linear-gradient(135deg, #f5f5f5 0%, #e8eaf6 100%)', 
+            borderRadius: 4,
+            boxShadow: 'none',
+            border: (theme) => `1px solid ${theme.palette.mode === 'dark' ? '#555' : '#e0e0e0'}`,
+            '&:hover': { 
+              background: (theme) => theme.palette.mode === 'dark' ? 'linear-gradient(135deg, #616161 0%, #757575 100%)' : 'linear-gradient(135deg, #e8eaf6 0%, #c5cae9 100%)',
+              borderColor: (theme) => theme.palette.mode === 'dark' ? '#90caf9' : '#9c27b0'
+            },
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            ...((index === 0 || index === 1) && { mt: 2 }) 
+          }}>
+            <Typography variant="h6" sx={{ fontWeight: 500, mb: 2, color: (theme) => theme.palette.mode === 'dark' ? theme.palette.primary.main : '#6a1b9a' }}>
+              {section.title}
+            </Typography>
+            {section.items.map((item, itemIndex) => (
+              <Typography key={itemIndex} sx={{ mb: itemIndex < section.items.length - 1 ? 1 : 0, color: (theme) => theme.palette.text.primary, display: 'flex', alignItems: 'center' }}>
+                <strong>{item.label}</strong> {item.value}
+                {(item.label === 'Email: ' || item.label === 'Phone: ') && (
+                  <IconButton size="small" onClick={() => copyToClipboard(item.value, item.label)} sx={{ ml: 0.5, p: 0.5 }}>
+                    <ContentCopyIcon fontSize="small" />
+                  </IconButton>
+                )}
+              </Typography>
+            ))}
+          </Card>
+        </Grid>
+      ))}
+      
+      <Grid item xs={12}>
+        <Card sx={{ 
+          p: 3, 
+          background: (theme) => theme.palette.mode === 'dark' ? 'linear-gradient(135deg, #424242 0%, #616161 100%)' : 'linear-gradient(135deg, #f5f5f5 0%, #e8eaf6 100%)', 
+          borderRadius: 4,
+          boxShadow: 'none',
+          border: '1px solid #e0e0e0',
+          '&:hover': { 
+            background: (theme) => theme.palette.mode === 'dark' ? 'linear-gradient(135deg, #616161 0%, #757575 100%)' : 'linear-gradient(135deg, #e8eaf6 0%, #c5cae9 100%)',
+            borderColor: (theme) => theme.palette.mode === 'dark' ? '#90caf9' : '#9c27b0'
+          },
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+        }}>
+          <Typography variant="h6" sx={{ fontWeight: 500, mb: 2, color: '#6a1b9a' }}>
+            📝 Additional Notes
+          </Typography>
+          <TextField
+            multiline
+            rows={4}
+            fullWidth
+            value={profile.remarks || ''}
+            placeholder="No remarks available"
+            InputProps={{
+              readOnly: true,
+              sx: {
+                backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                '& .MuiOutlinedInput-notchedOutline': {
+                  borderColor: 'rgba(0, 0, 0, 0.23)'
+                }
+              }
+            }}
+          />
+        </Card>
+      </Grid>
+    </Grid>
+  );
+});
 
 interface ProfileData {
   profile_id: number | null;
@@ -25,152 +135,183 @@ interface ProfileDetailsDialogProps {
 }
 
 const ProfileDetailsDialog: React.FC<ProfileDetailsDialogProps> = ({ open, onClose, profileData, onStatusUpdate }) => {
-  const [selectedStatus, setSelectedStatus] = useState<number>(profileData?.status_id || 1);
-  const [selectedStage, setSelectedStage] = useState<number>(1);
-  const [originalStage, setOriginalStage] = useState<number>(1);
-  const [statusOptions, setStatusOptions] = useState<string[]>([]);
-  const [stageOptions, setStageOptions] = useState<string[]>([]);
-  const [showConfirmation, setShowConfirmation] = useState(false);
-  const [statusText, setStatusText] = useState<string>('');
-  const [stageText, setStageText] = useState<string>('');
-  const [copyMessage, setCopyMessage] = useState('');
-  const [showCopySnackbar, setShowCopySnackbar] = useState(false);
-  const [remarks, setRemarks] = useState<string>('');
+  const [state, setState] = useState({
+    selectedStatus: '',
+    selectedStage: '',
+    statusOptions: [] as string[],
+    stageOptions: [] as string[],
+    showConfirmation: false,
+    copyMessage: '',
+    showCopySnackbar: false,
+    remarks: '',
+    isUpdating: false,
+    currentStatusId: null as number | null,
+    statusText: '',
+    stageText: ''
+  });
 
   useEffect(() => {
-    const loadData = async () => {
+    if (!profileData?.status_id) {
+      setState(prev => ({ ...prev, statusText: '', stageText: '' }));
+      return;
+    }
+
+    const updateTexts = async () => {
       try {
-        const stages = await profileStatusService.getStageList();
-        if (Array.isArray(stages)) {
-          setStageOptions(stages);
-          
-          if (profileData?.status_id) {
-            const currentStage = await profileStatusService.getStageById(profileData.status_id);
-            const stageIndex = stages.findIndex(stage => stage === currentStage);
-            if (stageIndex !== -1) {
-              setSelectedStage(stageIndex + 1);
-              setOriginalStage(stageIndex + 1);
-              const statuses = await profileStatusService.getStatusesByStage(currentStage!);
-              setStatusOptions(statuses);
-              
-              // Set the correct status index
-              const currentStatusName = await profileStatusService.getStatusById(profileData.status_id);
-              const statusIndex = statuses.findIndex(status => status === currentStatusName);
-              setSelectedStatus(statusIndex !== -1 ? statusIndex + 1 : 1);
-            }
-          }
-        }
+        const [status, stage] = await Promise.all([
+          profileStatusService.getStatusById(profileData.status_id),
+          profileStatusService.getStageById(profileData.status_id)
+        ]);
+        setState(prev => ({ ...prev, statusText: status || '', stageText: stage || '' }));
       } catch (error) {
-        console.error('Error loading data:', error);
-        setStatusOptions([]);
-        setStageOptions([]);
+        console.error('Error updating status/stage text:', error);
       }
     };
-    loadData();
-  }, [profileData]);
+
+    updateTexts();
+  }, [profileData?.status_id]);
 
   useEffect(() => {
     if (!profileData) return;
-    
-    // Update selected status
-    if (profileData.status_id) {
-      setSelectedStatus(profileData.status_id);
-    }
-    
-    // Update remarks
-    setRemarks(profileData.profile?.remarks || '');
-    
-    // Load status and stage text
-    const loadStatusData = async () => {
-      if (profileData.status_id) {
-        try {
+
+    const loadData = async () => {
+      try {
+        const stages = await profileStatusService.getStageList();
+        if (!Array.isArray(stages)) return;
+
+        let selectedStage = '';
+        let selectedStatus = '';
+        let statusOptions: string[] = [];
+
+        if (profileData.status_id) {
           const [status, stage] = await Promise.all([
             profileStatusService.getStatusById(profileData.status_id),
             profileStatusService.getStageById(profileData.status_id)
           ]);
-          setStatusText(status || '');
-          setStageText(stage || '');
-        } catch (error) {
-          console.error('Error loading status:', error);
-          setStatusText('');
-          setStageText('');
+
+          if (stage) {
+            const stageIndex = stages.findIndex(s => s === stage);
+            selectedStage = stageIndex !== -1 ? (stageIndex + 1).toString() : '';
+            
+            statusOptions = await profileStatusService.getStatusesByStage(stage);
+            if (status) {
+              const statusIndex = statusOptions.findIndex(s => s === status);
+              selectedStatus = statusIndex !== -1 ? (statusIndex + 1).toString() : '';
+            }
+          }
         }
+
+        setState(prev => ({
+          ...prev,
+          stageOptions: stages,
+          selectedStage,
+          statusOptions,
+          selectedStatus,
+          remarks: profileData.profile?.remarks || '',
+          currentStatusId: profileData.status_id
+        }));
+      } catch (error) {
+        console.error('Error loading data:', error);
       }
     };
-    
-    loadStatusData();
+
+    loadData();
   }, [profileData]);
+
+
   
   if (!profileData) return null;
 
-  const handleStageChange = async (newStage: number) => {
-    setSelectedStage(newStage);
+  const handleStageChange = useCallback(async (newStage: string) => {
     try {
-      const stageName = stageOptions[newStage - 1];
+      const stageIndex = parseInt(newStage) - 1;
+      const stageName = state.stageOptions[stageIndex];
       const statuses = await profileStatusService.getStatusesByStage(stageName);
-      setStatusOptions(statuses);
       
-      // Find the current status in the new status list and set its index
+      let selectedStatus = '';
+      let currentStatusId: number | null = null;
       if (profileData?.status_id) {
         const currentStatusName = await profileStatusService.getStatusById(profileData.status_id);
         const statusIndex = statuses.findIndex(status => status === currentStatusName);
-        setSelectedStatus(statusIndex !== -1 ? statusIndex + 1 : 1);
-      } else {
-        setSelectedStatus(1);
+        selectedStatus = statusIndex !== -1 ? (statusIndex + 1).toString() : '';
       }
+      
+      // Update currentStatusId when both stage and status are selected
+      if (selectedStatus) {
+        const statusName = statuses[parseInt(selectedStatus) - 1];
+        currentStatusId = await profileStatusService.getIdByStageAndStatus(stageName, statusName) || null;
+      }
+      
+      setState(prev => ({ ...prev, selectedStage: newStage, statusOptions: statuses, selectedStatus, currentStatusId }));
     } catch (error) {
       console.error('Error loading statuses for stage:', error);
     }
-  };
+  }, [state.stageOptions, profileData?.status_id]);
 
-  const handleStatusChange = (newStatus: number) => {
-    setSelectedStatus(newStatus);
-  };
-
-  const handleUpdateClick = () => {
-    if (selectedStatus !== profileData.status_id || selectedStage !== originalStage) {
-      setRemarks('');
-      setShowConfirmation(true);
-    }
-  };
-
-  const hasChanges = selectedStatus !== profileData.status_id || selectedStage !== originalStage;
-
-  const confirmStatusUpdate = async () => {
+  const handleStatusChange = useCallback(async (newStatus: string) => {
     try {
-      console.log ("Selected status: ", selectedStatus);
-      await profileService.updateStatus(profileData.id, selectedStatus, remarks);
-      if (onStatusUpdate) {
-        onStatusUpdate(profileData.id, selectedStatus);
+      let currentStatusId: number | null = null;
+      if (newStatus && state.selectedStage) {
+        const stageIndex = parseInt(state.selectedStage) - 1;
+        const statusIndex = parseInt(newStatus) - 1;
+        const stageName = state.stageOptions[stageIndex];
+        const statusName = state.statusOptions[statusIndex];
+        currentStatusId = await profileStatusService.getIdByStageAndStatus(stageName, statusName) || null;
       }
-      setShowConfirmation(false);
+      setState(prev => ({ ...prev, selectedStatus: newStatus, currentStatusId }));
+    } catch (error) {
+      console.error('Error getting status ID:', error);
+      setState(prev => ({ ...prev, selectedStatus: newStatus }));
+    }
+  }, [state.stageOptions, state.statusOptions, state.selectedStage]);
+
+  const hasChanges = useMemo(() => 
+    state.currentStatusId !== profileData?.status_id,
+    [state.currentStatusId, profileData?.status_id]
+  );
+
+  const handleUpdateClick = useCallback(() => {
+    if (hasChanges) {
+      setState(prev => ({ ...prev, remarks: '', showConfirmation: true }));
+    }
+  }, [hasChanges]);
+
+  const confirmStatusUpdate = useCallback(async () => {
+    try {
+      setState(prev => ({ ...prev, isUpdating: true }));
+      const stageIndex = parseInt(state.selectedStage) - 1;
+      const statusIndex = parseInt(state.selectedStatus) - 1;
+      const stageName = state.stageOptions[stageIndex];
+      const statusName = state.statusOptions[statusIndex];
+      const statusId = await profileStatusService.getIdByStageAndStatus(stageName, statusName);
+      
+      if (!statusId) {
+        throw new Error('Status ID not found');
+      }
+      
+      await profileService.updateStatus(profileData!.id, statusId, state.remarks);
+      onStatusUpdate?.(profileData!.id, statusId);
+      
+      // Close dialog after successful update
+      onClose();
     } catch (error) {
       console.error('Error updating status:', error);
+      setState(prev => ({ ...prev, isUpdating: false }));
     }
-  };
+  }, [profileData, state.selectedStatus, state.selectedStage, state.remarks, onStatusUpdate, onClose]);
 
-  const cancelStatusUpdate = () => {
-    setSelectedStatus(profileData.status_id);
-    setSelectedStage(originalStage);
-    // Reload statuses for original stage
-    const reloadOriginalStage = async () => {
-      try {
-        const stageName = stageOptions[originalStage - 1];
-        const statuses = await profileStatusService.getStatusesByStage(stageName);
-        setStatusOptions(statuses);
-      } catch (error) {
-        console.error('Error reloading original stage statuses:', error);
-      }
-    };
-    reloadOriginalStage();
-    setShowConfirmation(false);
-  };
+  const cancelStatusUpdate = useCallback(() => {
+    setState(prev => ({
+      ...prev,
+      currentStatusId: profileData?.status_id || null,
+      showConfirmation: false
+    }));
+  }, [profileData?.status_id]);
 
-  const copyToClipboard = (text: string, label: string) => {
+  const copyToClipboard = useCallback((text: string, label: string) => {
     navigator.clipboard.writeText(text);
-    setCopyMessage(`${label} copied to clipboard`);
-    setShowCopySnackbar(true);
-  };
+    setState(prev => ({ ...prev, copyMessage: `${label} copied to clipboard`, showCopySnackbar: true }));
+  }, []);
 
   return (
     <Dialog 
@@ -207,13 +348,12 @@ const ProfileDetailsDialog: React.FC<ProfileDetailsDialogProps> = ({ open, onClo
 
             <Box sx={{ display: 'flex', gap: 1, marginLeft: 'auto' }}>
               <Chip 
-                label={stageText} 
+                label={state.stageText} 
                 color="primary" 
                 sx={{ fontSize: '0.9rem', fontWeight: 600 }} 
               />
-
               <Chip 
-                label={statusText} 
+                label={state.statusText} 
                 color="primary" 
                 sx={{ fontSize: '0.9rem', fontWeight: 600 }} 
               />
@@ -224,105 +364,7 @@ const ProfileDetailsDialog: React.FC<ProfileDetailsDialogProps> = ({ open, onClo
       
       <DialogContent sx={{ p: 3 }}>
         {profileData.profile ? (
-          <Grid container spacing={3}>
-            {[
-              {
-                title: '📞 Contact Information',
-                items: [
-                  { label: 'Email: ', value: profileData.profile.email },
-                  { label: 'Phone: ', value: profileData.profile.phone }
-                ]
-              },
-              {
-                title: '🎯 Professional Details',
-                items: [
-                  { label: 'Experience: ', value: `${profileData.profile.experience_years} years` },
-                  { label: 'Skills: ', value: profileData.profile.skills }
-                ]
-              },
-              {
-                title: '📍 Location Preferences',
-                items: [
-                  { label: 'Current: ', value: profileData.profile.current_location },
-                  { label: 'Preferred: ', value: profileData.profile.preferred_location }
-                ]
-              },
-              {
-                title: '💰 Compensation & Availability',
-                items: [
-                  { label: 'Current CTC: ', value: formatINR(profileData.profile.current_ctc) },
-                  { label: 'Expected CTC: ', value: formatINR(profileData.profile.expected_ctc) },
-                  { label: 'Notice Period: ', value: profileData.profile.notice_period || 'Not specified' }
-                ]
-              },
-            ].map((section, index) => (
-              <Grid item xs={12} md={6} key={index}>
-                <Card sx={{ 
-                  p: 3, 
-                  height: 180, 
-                  background: (theme) => theme.palette.mode === 'dark' ? 'linear-gradient(135deg, #424242 0%, #616161 100%)' : 'linear-gradient(135deg, #f5f5f5 0%, #e8eaf6 100%)', 
-                  borderRadius: 4,
-                  boxShadow: 'none',
-                  border: (theme) => `1px solid ${theme.palette.mode === 'dark' ? '#555' : '#e0e0e0'}`,
-                  '&:hover': { 
-                    background: (theme) => theme.palette.mode === 'dark' ? 'linear-gradient(135deg, #616161 0%, #757575 100%)' : 'linear-gradient(135deg, #e8eaf6 0%, #c5cae9 100%)',
-                    borderColor: (theme) => theme.palette.mode === 'dark' ? '#90caf9' : '#9c27b0'
-                  },
-                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                  ...((index === 0 || index === 1) && { mt: 2 }) 
-                }}>
-                  <Typography variant="h6" sx={{ fontWeight: 500, mb: 2, color: (theme) => theme.palette.mode === 'dark' ? theme.palette.primary.main : '#6a1b9a' }}>
-                    {section.title}
-                  </Typography>
-                  {section.items.map((item, itemIndex) => (
-                    <Typography key={itemIndex} sx={{ mb: itemIndex < section.items.length - 1 ? 1 : 0, color: (theme) => theme.palette.text.primary, display: 'flex', alignItems: 'center' }}>
-                      <strong>{item.label}</strong> {item.value}
-                      {(item.label === 'Email: ' || item.label === 'Phone: ') && (
-                        <IconButton size="small" onClick={() => copyToClipboard(item.value, item.label)} sx={{ ml: 0.5, p: 0.5 }}>
-                          <ContentCopyIcon fontSize="small" />
-                        </IconButton>
-                      )}
-                    </Typography>
-                  ))}
-                </Card>
-              </Grid>
-            ))}
-            
-            <Grid item xs={12}>
-              <Card sx={{ 
-                p: 3, 
-                background: (theme) => theme.palette.mode === 'dark' ? 'linear-gradient(135deg, #424242 0%, #616161 100%)' : 'linear-gradient(135deg, #f5f5f5 0%, #e8eaf6 100%)', 
-                borderRadius: 4,
-                boxShadow: 'none',
-                border: '1px solid #e0e0e0',
-                '&:hover': { 
-                  background: (theme) => theme.palette.mode === 'dark' ? 'linear-gradient(135deg, #616161 0%, #757575 100%)' : 'linear-gradient(135deg, #e8eaf6 0%, #c5cae9 100%)',
-                  borderColor: (theme) => theme.palette.mode === 'dark' ? '#90caf9' : '#9c27b0'
-                },
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-              }}>
-                <Typography variant="h6" sx={{ fontWeight: 500, mb: 2, color: '#6a1b9a' }}>
-                  📝 Additional Notes
-                </Typography>
-                <TextField
-                  multiline
-                  rows={4}
-                  fullWidth
-                  value={profileData.profile.remarks || ''}
-                  placeholder="No remarks available"
-                  InputProps={{
-                    readOnly: true,
-                    sx: {
-                      backgroundColor: 'rgba(255, 255, 255, 0.7)',
-                      '& .MuiOutlinedInput-notchedOutline': {
-                        borderColor: 'rgba(0, 0, 0, 0.23)'
-                      }
-                    }
-                  }}
-                />
-              </Card>
-            </Grid>
-          </Grid>
+          <ProfileContent profile={profileData.profile} copyToClipboard={copyToClipboard} />
         ) : (
           <Card sx={{ p: 4, textAlign: 'center', background: (theme) => theme.palette.mode === 'dark' ? 'linear-gradient(135deg, #2c2c2c 0%, #3c3c3c 100%)' : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)' }}>
             <Typography variant="h6" color="text.secondary">
@@ -337,12 +379,12 @@ const ProfileDetailsDialog: React.FC<ProfileDetailsDialogProps> = ({ open, onClo
           <FormControl size="small" sx={{ minWidth: 120 }}>
             <InputLabel>Stage</InputLabel>
             <Select
-              value={selectedStage}
-              onChange={(e) => handleStageChange(Number(e.target.value))}
+              value={state.selectedStage}
+              onChange={(e) => handleStageChange(e.target.value as string)}
               label="Stage"
             >
-              {Array.isArray(stageOptions) && stageOptions.map((option, index) => (
-                <MenuItem key={index} value={index + 1}>
+              {state.stageOptions.map((option, index) => (
+                <MenuItem key={index} value={(index + 1).toString()}>
                   {option}
                 </MenuItem>
               ))}
@@ -352,12 +394,12 @@ const ProfileDetailsDialog: React.FC<ProfileDetailsDialogProps> = ({ open, onClo
           <FormControl size="small" sx={{ minWidth: 120 }}>
             <InputLabel>Status</InputLabel>
             <Select
-              value={selectedStatus}
-              onChange={(e) => handleStatusChange(Number(e.target.value))}
+              value={state.selectedStatus}
+              onChange={(e) => handleStatusChange(e.target.value as string)}
               label="Status"
             >
-              {Array.isArray(statusOptions) && statusOptions.map((option, index) => (
-                <MenuItem key={index} value={index + 1}>
+              {state.statusOptions.map((option, index) => (
+                <MenuItem key={index} value={(index + 1).toString()}>
                   {option}
                 </MenuItem>
               ))}
@@ -388,7 +430,7 @@ const ProfileDetailsDialog: React.FC<ProfileDetailsDialogProps> = ({ open, onClo
         </Button>
       </DialogActions>
 
-      <Dialog open={showConfirmation} onClose={() => setShowConfirmation(false)}>
+      <Dialog open={state.showConfirmation} onClose={() => setState(prev => ({ ...prev, showConfirmation: false }))}>
         <DialogTitle>Confirm Status Change</DialogTitle>
         <DialogContent>
           <Typography sx={{ mb: 2 }}>Are you sure you want to update the status?</Typography>
@@ -397,22 +439,24 @@ const ProfileDetailsDialog: React.FC<ProfileDetailsDialogProps> = ({ open, onClo
             multiline
             rows={3}
             fullWidth
-            value={remarks}
-            onChange={(e) => setRemarks(e.target.value)}
+            value={state.remarks}
+            onChange={(e) => setState(prev => ({ ...prev, remarks: e.target.value }))}
             placeholder="Add remarks for this status change..."
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={cancelStatusUpdate}>Cancel</Button>
-          <Button onClick={confirmStatusUpdate} variant="contained">Confirm</Button>
+          <Button onClick={cancelStatusUpdate} disabled={state.isUpdating}>Cancel</Button>
+          <Button onClick={confirmStatusUpdate} variant="contained" disabled={state.isUpdating}>
+            {state.isUpdating ? <CircularProgress size={20} /> : 'Confirm'}
+          </Button>
         </DialogActions>
       </Dialog>
       
       <Snackbar
-        open={showCopySnackbar}
+        open={state.showCopySnackbar}
         autoHideDuration={2000}
-        onClose={() => setShowCopySnackbar(false)}
-        message={copyMessage}
+        onClose={() => setState(prev => ({ ...prev, showCopySnackbar: false }))}
+        message={state.copyMessage}
       />
     </Dialog>
   );

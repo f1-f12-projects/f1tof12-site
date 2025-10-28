@@ -36,6 +36,7 @@ const ProcessProfiles: React.FC = () => {
   });
   const [errors, setErrors] = useState<{[key: string]: boolean}>({});
   const [submitting, setSubmitting] = useState(false);
+  const [profileRefreshKey, setProfileRefreshKey] = useState(0);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -92,6 +93,7 @@ const ProcessProfiles: React.FC = () => {
           expected_ctc: '', notice_period: ''
         });
         setErrors({});
+        setProfileRefreshKey(prev => prev + 1);
       } else {
         showAlert('Failed to add candidate', 'error');
       }
@@ -183,7 +185,7 @@ const ProcessProfiles: React.FC = () => {
             </Grid>
             <Grid item xs={12} md={9}>
               <ProfileDashboard
-                key={selectedRequirement?.requirement_id}
+                key={`${selectedRequirement?.requirement_id}-${profileRefreshKey}`}
                 selectedRequirement={selectedRequirement}
                 onAddProfile={() => setShowAddForm(true)}
               />

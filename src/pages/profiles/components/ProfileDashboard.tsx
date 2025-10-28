@@ -242,7 +242,12 @@ const ProfileDashboard: React.FC<ProfileDashboardProps> = ({ selectedRequirement
       {selectedProfile && (
         <ProfileDetailsDialog
           open={!!selectedProfile}
-          onClose={() => setSelectedProfile(null)}
+          onClose={() => {
+            setSelectedProfile(null);
+            if (selectedRequirement) {
+              fetchProfileCounts(selectedRequirement.requirement_id);
+            }
+          }}
           profileData={{
             profile_id: selectedProfile.id || null,
             id: selectedProfile.id || 0,
@@ -251,6 +256,11 @@ const ProfileDashboard: React.FC<ProfileDashboardProps> = ({ selectedRequirement
             requirement_id: selectedRequirement?.requirement_id || 0,
             status_id: selectedProfile.status || 0,
             profile: selectedProfile
+          }}
+          onStatusUpdate={() => {
+            if (selectedRequirement) {
+              fetchProfileCounts(selectedRequirement.requirement_id);
+            }
           }}
         />
       )}
