@@ -60,5 +60,6 @@ export const profileStatusService = {
   getStatusesByStage: async (stageName: string): Promise<string[]> => {
     const statuses = await profileStatusService.getProfileStatuses();
     return statuses.filter(status => status.stage === stageName).map(status => status.status);
-  }
+  },
+
 };

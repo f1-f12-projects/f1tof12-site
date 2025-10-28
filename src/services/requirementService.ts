@@ -1,6 +1,7 @@
 import { Requirement } from '../models/Requirement';
 import { RequirementStatus } from '../models/RequirementStatus';
 import { ApiResponse } from '../models/ApiResponse';
+import { Profile } from '../models/Profile';
 import { apiService } from './apiService';
 import { cacheService } from './cacheService';
 
@@ -112,6 +113,18 @@ export const requirementService = {
   async addComment(requirement_id: number, comment: string): Promise<ApiResponse> {
     const endpoint = process.env.REACT_APP_REQUIREMENTS_ADD_COMMENT_ENDPOINT!.replace('{requirement_id}', requirement_id.toString());
     return await apiService.put<ApiResponse>(endpoint, { remarks: comment });
+  },
+
+  async getProfileCounts(requirement_id: number): Promise<ApiResponse<Record<string, number>>> {
+    const endpoint = process.env.REACT_APP_REQUIREMENTS_GET_PROFILE_COUNTS_ENDPOINT!.replace('{requirement_id}', requirement_id.toString());
+    return await apiService.get<ApiResponse<Record<string, number>>>(endpoint);
+  },
+
+  async getProfilesByStage(requirement_id: number, stage: string): Promise<ApiResponse<(Profile & { stage: string })[]>> {
+    const endpoint = process.env.REACT_APP_REQUIREMENTS_GET_PROFILE_STAGE_ENDPOINT!
+      .replace('{requirement_id}', requirement_id.toString())
+      .replace('{stage}', stage);
+    return await apiService.get<ApiResponse<(Profile & { stage: string })[]>>(endpoint);
   },
 
   clearCache(): void {

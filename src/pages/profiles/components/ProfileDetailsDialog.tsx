@@ -3,6 +3,7 @@ import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Box, Typogra
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { Profile } from '../../../models/Profile';
 import { profileStatusService } from '../../../services/profileStatusService';
+import { profileService } from '../../../services/profileService';
 import { ProfileStatus } from '../../../models/ProfileStatus';
 import { formatINR } from '../../../utils/currencyUtils';
 
@@ -12,8 +13,7 @@ interface ProfileData {
   recruiter_name: string;
   remarks: string;
   requirement_id: number;
-  status: number;
-  stage?: string;
+  status_id: number;
   profile?: Profile;
 }
 
@@ -25,7 +25,7 @@ interface ProfileDetailsDialogProps {
 }
 
 const ProfileDetailsDialog: React.FC<ProfileDetailsDialogProps> = ({ open, onClose, profileData, onStatusUpdate }) => {
-  const [selectedStatus, setSelectedStatus] = useState<number>(profileData?.status || 1);
+  const [selectedStatus, setSelectedStatus] = useState<number>(profileData?.status_id || 1);
   const [selectedStage, setSelectedStage] = useState<number>(1);
   const [originalStage, setOriginalStage] = useState<number>(1);
   const [statusOptions, setStatusOptions] = useState<string[]>([]);
@@ -44,14 +44,19 @@ const ProfileDetailsDialog: React.FC<ProfileDetailsDialogProps> = ({ open, onClo
         if (Array.isArray(stages)) {
           setStageOptions(stages);
           
-          if (profileData?.status) {
-            const currentStage = await profileStatusService.getStageById(profileData.status);
+          if (profileData?.status_id) {
+            const currentStage = await profileStatusService.getStageById(profileData.status_id);
             const stageIndex = stages.findIndex(stage => stage === currentStage);
             if (stageIndex !== -1) {
               setSelectedStage(stageIndex + 1);
               setOriginalStage(stageIndex + 1);
               const statuses = await profileStatusService.getStatusesByStage(currentStage!);
               setStatusOptions(statuses);
+              
+              // Set the correct status index
+              const currentStatusName = await profileStatusService.getStatusById(profileData.status_id);
+              const statusIndex = statuses.findIndex(status => status === currentStatusName);
+              setSelectedStatus(statusIndex !== -1 ? statusIndex + 1 : 1);
             }
           }
         }
@@ -68,8 +73,8 @@ const ProfileDetailsDialog: React.FC<ProfileDetailsDialogProps> = ({ open, onClo
     if (!profileData) return;
     
     // Update selected status
-    if (profileData.status) {
-      setSelectedStatus(profileData.status);
+    if (profileData.status_id) {
+      setSelectedStatus(profileData.status_id);
     }
     
     // Update remarks
@@ -77,11 +82,11 @@ const ProfileDetailsDialog: React.FC<ProfileDetailsDialogProps> = ({ open, onClo
     
     // Load status and stage text
     const loadStatusData = async () => {
-      if (profileData.status) {
+      if (profileData.status_id) {
         try {
           const [status, stage] = await Promise.all([
-            profileStatusService.getStatusById(profileData.status),
-            profileStatusService.getStageById(profileData.status)
+            profileStatusService.getStatusById(profileData.status_id),
+            profileStatusService.getStageById(profileData.status_id)
           ]);
           setStatusText(status || '');
           setStageText(stage || '');
@@ -104,7 +109,15 @@ const ProfileDetailsDialog: React.FC<ProfileDetailsDialogProps> = ({ open, onClo
       const stageName = stageOptions[newStage - 1];
       const statuses = await profileStatusService.getStatusesByStage(stageName);
       setStatusOptions(statuses);
-      setSelectedStatus(1);
+      
+      // Find the current status in the new status list and set its index
+      if (profileData?.status_id) {
+        const currentStatusName = await profileStatusService.getStatusById(profileData.status_id);
+        const statusIndex = statuses.findIndex(status => status === currentStatusName);
+        setSelectedStatus(statusIndex !== -1 ? statusIndex + 1 : 1);
+      } else {
+        setSelectedStatus(1);
+      }
     } catch (error) {
       console.error('Error loading statuses for stage:', error);
     }
@@ -115,23 +128,29 @@ const ProfileDetailsDialog: React.FC<ProfileDetailsDialogProps> = ({ open, onClo
   };
 
   const handleUpdateClick = () => {
-    if (selectedStatus !== profileData.status || selectedStage !== originalStage) {
+    if (selectedStatus !== profileData.status_id || selectedStage !== originalStage) {
       setRemarks('');
       setShowConfirmation(true);
     }
   };
 
-  const hasChanges = selectedStatus !== profileData.status || selectedStage !== originalStage;
+  const hasChanges = selectedStatus !== profileData.status_id || selectedStage !== originalStage;
 
-  const confirmStatusUpdate = () => {
-    if (onStatusUpdate) {
-      onStatusUpdate(profileData.id, selectedStatus);
+  const confirmStatusUpdate = async () => {
+    try {
+      console.log ("Selected status: ", selectedStatus);
+      await profileService.updateStatus(profileData.id, selectedStatus, remarks);
+      if (onStatusUpdate) {
+        onStatusUpdate(profileData.id, selectedStatus);
+      }
+      setShowConfirmation(false);
+    } catch (error) {
+      console.error('Error updating status:', error);
     }
-    setShowConfirmation(false);
   };
 
   const cancelStatusUpdate = () => {
-    setSelectedStatus(profileData.status);
+    setSelectedStatus(profileData.status_id);
     setSelectedStage(originalStage);
     // Reload statuses for original stage
     const reloadOriginalStage = async () => {

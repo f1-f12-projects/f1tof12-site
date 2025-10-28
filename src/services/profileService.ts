@@ -43,6 +43,20 @@ export const profileService = {
     return response;
   },
 
+  async updateStatus(profileId: number, statusId: number, remarks?: string): Promise<ApiResponse> {
+    const endpoint = process.env.REACT_APP_PROFILE_UPDATE_STATUS_ENDPOINT!.replace('{profile_id}', profileId.toString());
+    const response = await apiService.put<ApiResponse>(endpoint, {
+      status: statusId,
+      remarks
+    });
+    
+    if (response.success) {
+      cacheService.delete(CACHE_KEY);
+    }
+    
+    return response;
+  },
+
   clearCache(): void {
     cacheService.delete(CACHE_KEY);
   }

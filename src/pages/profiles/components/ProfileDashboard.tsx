@@ -2,9 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Paper, Box, Typography, Grid, Card, Stack, Button, Avatar, CardContent, Chip, CircularProgress } from '@mui/material';
 import { Requirement } from '../../../models/Requirement';
 import { ProfileStatus } from '../../../models/ProfileStatus';
-import { apiService } from '../../../services/apiService';
 import { profileStatusService } from '../../../services/profileStatusService';
-import { profileService } from '../../../services/profileService';
+import { requirementService } from '../../../services/requirementService';
 import { Profile } from '../../../models/Profile';
 import ProfileDetailsDialog from './ProfileDetailsDialog';
 
@@ -13,89 +12,46 @@ interface ProfileDashboardProps {
   onAddProfile: () => void;
 }
 
-interface ProfileCounts {
-  screening?: number;
-  interview?: number;
-  offer?: number;
-  dropped?: number;
-  joined?: number;
-  [key: string]: number | undefined;
-}
-
-interface ProfileData {
-  profile_id: number | null;
-  id: number;
-  recruiter_name: string;
-  remarks: string;
-  requirement_id: number;
-  status: number;
-  stage?: string;
-  profile?: Profile;
+interface ProfileData extends Profile {
+  stage: string;
 }
 
 const ProfileDashboard: React.FC<ProfileDashboardProps> = ({ selectedRequirement, onAddProfile }) => {
   const [profileStatuses, setProfileStatuses] = useState<ProfileStatus[]>([]);
-  const [profileCounts, setProfileCounts] = useState<ProfileCounts>({});
+  const [profileCounts, setProfileCounts] = useState<Record<string, number>>({});
   const [profileData, setProfileData] = useState<ProfileData[]>([]);
   const [stages, setStages] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedProfile, setSelectedProfile] = useState<ProfileData | null>(null);
   const [selectedStage, setSelectedStage] = useState<string | null>(null);
+  const [selectedProfile, setSelectedProfile] = useState<ProfileData | null>(null);
   
   const fetchProfileCounts = async (requirementId: number) => {
     try {
       setLoading(true);
       // To fetch records from profile_profiles table
-      const endpoint = `${process.env.REACT_APP_REQUIREMENTS_GET_PROFILE_COUNTS_ENDPOINT}`.replace('{requirement_id}', requirementId.toString());
-      const response = await apiService.get<any>(endpoint);
-      const data = Array.isArray(response) ? response : (response?.data || []);
+      const response = await requirementService.getProfileCounts(requirementId);
       
-      const statusIdToStage: Record<number, string> = {};
-      profileStatuses.forEach(cs => {
-        statusIdToStage[cs.id] = cs.stage;
-      });
-      
-      const dataWithStage = data.map((item: any) => ({
-        ...item,
-        stage: statusIdToStage[item.status] || 'Unknown'
-      }));
-      
-      const counts: ProfileCounts = {};
-      dataWithStage.forEach((item: any) => {
-        const stage = item.stage.toLowerCase();
-        counts[stage] = (counts[stage] || 0) + 1;
-      });
-      setProfileCounts(counts);
-
-      // Fetch profile information for items with profile_id
-      const itemsWithProfiles = dataWithStage.filter((item: any) => item.profile_id);
-      const itemsWithoutProfiles = dataWithStage.filter((item: any) => !item.profile_id);
-      
-      const profileResults = await Promise.allSettled(
-        itemsWithProfiles.map((item: any) => {
-          return profileService.getProfile(item.profile_id)
-            .then(response => {
-              return { item, profile: response.success ? response.data : null };
-            })
-            .catch(error => {
-              console.error('Error fetching candidate for', item.profile_id, ':', error);
-              return { item, profile: null };
-            });
-        })
-      );
-      
-      const profilesWithDetails = [
-        ...itemsWithoutProfiles,
-        ...profileResults.map((result, index) => ({
-          ...itemsWithProfiles[index],
-          profile: result.status === 'fulfilled' ? result.value.profile : null
-        }))
-      ];
-      
-      setProfileData(profilesWithDetails);
+      if (response.success && response.data) {
+        setProfileCounts(response.data);
+      }
 
     } catch (error) {
       console.error('Failed to fetch candidate counts:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadProfilesByStage = async (requirementId: number, stage: string) => {
+    try {
+      setLoading(true);
+      const response = await requirementService.getProfilesByStage(requirementId, stage);
+      
+      if (response.success && response.data) {
+        setProfileData(response.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch profiles by stage:', error);
     } finally {
       setLoading(false);
     }
@@ -125,10 +81,6 @@ const ProfileDashboard: React.FC<ProfileDashboardProps> = ({ selectedRequirement
     }
   }, [selectedRequirement, profileStatuses]);
 
-  useEffect(() => {
-    const uniqueStages = Array.from(new Set(profileStatuses.map(status => status.stage)));
-    setStages(uniqueStages);
-  }, [profileStatuses]);
   if (!selectedRequirement) {
     return (
       <Paper sx={{ p: 0, borderRadius: 3, overflow: 'hidden', background: (theme) => theme.palette.mode === 'dark' ? 'linear-gradient(135deg, #2c2c2c 0%, #3c3c3c 100%)' : 'linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%)' }}>
@@ -160,7 +112,15 @@ const ProfileDashboard: React.FC<ProfileDashboardProps> = ({ selectedRequirement
           <Grid container spacing={2} sx={{ mb: 4 }}>
             {stages && stages.map((stage, index) => (
               <Grid item xs={12} sm={6} md={1.5} key={stage}>
-                <Card onClick={() => setSelectedStage(selectedStage === stage ? null : stage)} sx={{ 
+                <Card onClick={() => {
+                  const newStage = selectedStage === stage ? null : stage;
+                  setSelectedStage(newStage);
+                  if (newStage && selectedRequirement) {
+                    loadProfilesByStage(selectedRequirement.requirement_id, newStage);
+                  } else {
+                    setProfileData([]);
+                  }
+                }} sx={{ 
                   textAlign: 'center', 
                   p: 1.5,
                   height: 80,
@@ -176,7 +136,7 @@ const ProfileDashboard: React.FC<ProfileDashboardProps> = ({ selectedRequirement
                   '&:hover': { transform: 'scale(1.05)' }
                 }}>
                   <Typography variant="h4" sx={{ fontWeight: 700, color: '#000', textShadow: '0 1px 2px rgba(255,255,255,0.8)', fontSize: '1.5rem' }}>
-                    {profileCounts[stage.toLowerCase()] || profileCounts[stage] || 0}
+                    {profileCounts[stage] || 0}
                   </Typography>
                   <Typography variant="body2" sx={{ fontWeight: 600, color: '#000', textShadow: '0 1px 1px rgba(255,255,255,0.6)', fontSize: '0.75rem' }}>
                     {stage}
@@ -222,7 +182,9 @@ const ProfileDashboard: React.FC<ProfileDashboardProps> = ({ selectedRequirement
                   📋 No Candidates Assigned
                 </Typography>
               </Card>
-            ) : selectedStage && profileData.filter(profile => profile.stage === selectedStage).length === 0 ? (
+            ) : selectedStage && profileData.filter(profile => {
+              return profile.stage === selectedStage;
+            }).length === 0 ? (
               <Card sx={{ 
                 textAlign: 'center', 
                 p: 4,
@@ -235,10 +197,13 @@ const ProfileDashboard: React.FC<ProfileDashboardProps> = ({ selectedRequirement
                 </Typography>
               </Card>
             ) : (
-              profileData.filter(profile => !selectedStage || profile.stage === selectedStage).map((profile) => (
+              profileData.filter(profile => {
+                if (!selectedStage) return true;
+                return profile.stage === selectedStage;
+              }).map((profile) => (
                 <Card 
-                  key={profile.id} 
-                  onDoubleClick={() => setSelectedProfile(profile)}
+                  key={profile.id}
+                  onClick={() => setSelectedProfile(profile)}
                   sx={{ 
                     border: 0,
                     borderRadius: 2,
@@ -251,19 +216,19 @@ const ProfileDashboard: React.FC<ProfileDashboardProps> = ({ selectedRequirement
                   <CardContent sx={{ p: 3 }}>
                     <Stack direction="row" spacing={2} alignItems="center">
                       <Avatar sx={{ bgcolor: 'primary.main', width: 48, height: 48 }}>
-                        P{profile.id}
+                        {profile.name?.charAt(0) || 'P'}
                       </Avatar>
                       <Box sx={{ flex: 1 }}>
                         <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>
-                          {profile.profile?.name || `Profile ${profile.id}`}
+                          {profile.name || `Profile ${profile.id}`}
                         </Typography>
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                          📧 {profile.profile?.email || 'Email not available'}
+                          📧 {profile.email || 'Email not available'}
                         </Typography>
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                          👤 Recruiter: {profile.recruiter_name || 'Not assigned'}
+                          📞 {profile.phone || 'Phone not available'}
                         </Typography>
-                        <Chip label={profile.stage} size="small" color="primary" sx={{ fontSize: '0.7rem' }} />
+                        <Chip label={profileStatuses.find(ps => ps.id === profile.status)?.status || 'Unknown'} size="small" color="primary" sx={{ fontSize: '0.7rem' }} />
                       </Box>
                     </Stack>
                   </CardContent>
@@ -273,12 +238,23 @@ const ProfileDashboard: React.FC<ProfileDashboardProps> = ({ selectedRequirement
           </Stack>
         </Box>
       </Box>
-      
-      <ProfileDetailsDialog
-        open={!!selectedProfile}
-        onClose={() => setSelectedProfile(null)}
-        profileData={selectedProfile}
-      />
+
+      {selectedProfile && (
+        <ProfileDetailsDialog
+          open={!!selectedProfile}
+          onClose={() => setSelectedProfile(null)}
+          profileData={{
+            profile_id: selectedProfile.id || null,
+            id: selectedProfile.id || 0,
+            recruiter_name: 'N/A',
+            remarks: selectedProfile.remarks || '',
+            requirement_id: selectedRequirement?.requirement_id || 0,
+            status_id: selectedProfile.status || 0,
+            profile: selectedProfile
+          }}
+        />
+      )}
+
     </Paper>
   );
 };

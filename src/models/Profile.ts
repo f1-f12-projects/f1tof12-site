@@ -11,6 +11,7 @@ export interface Profile {
   expected_ctc?: number | null;
   notice_period?: string | null;
   remarks?: string | null;
+  status?: number;
   created_date?: string;
   updated_date?: string;
 }
