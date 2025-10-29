@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Container, Paper, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Box, IconButton, Button, Chip, Avatar, Stack, Card, ToggleButton, ToggleButtonGroup, CircularProgress, MenuItem, Checkbox, TablePagination, FormControlLabel } from '@mui/material';
-import { Search, Assignment, Clear, Visibility, PersonAdd } from '@mui/icons-material';
+import { Search, Assignment, Clear, Visibility, PersonAdd, ArrowUpward, ArrowDownward } from '@mui/icons-material';
 import RequirementViewDialog from '../../components/RequirementViewDialog';
 import AssignRecruiterDialog from '../../components/AssignRecruiterDialog';
 import { Requirement } from '../../models/Requirement';
@@ -29,6 +29,8 @@ const RequirementList: React.FC = () => {
   const [companies, setCompanies] = useState<any[]>([]);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [sortBy, setSortBy] = useState<string>('');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   const [loading, setLoading] = useState(false);
   const [assignLoading, setAssignLoading] = useState(false);
@@ -104,8 +106,8 @@ const RequirementList: React.FC = () => {
     };
   }, [checkAuthentication, navigate]);
 
-  const filteredRequirements = useMemo(() => 
-    requirements.filter(requirement => {
+  const filteredRequirements = useMemo(() => {
+    let filtered = requirements.filter(requirement => {
       const searchTermLower = searchTerm.toLowerCase();
       const matchesSearch = (requirement.company_name || '').toLowerCase().includes(searchTermLower) || 
                            (requirement.key_skill || '').toLowerCase().includes(searchTermLower) ||
@@ -113,7 +115,28 @@ const RequirementList: React.FC = () => {
       const matchesStatus = statusFilter.length === 0 || (requirement.status_id && statusFilter.includes(requirement.status_id.toString()));
       const matchesActive = !showActiveOnly || (requirement.status_id !== 4 && requirement.status_id !== 5);
       return matchesSearch && matchesStatus && matchesActive;
-    }), [requirements, searchTerm, statusFilter, showActiveOnly]);
+    });
+
+    if (sortBy) {
+      filtered.sort((a, b) => {
+        let aVal: any, bVal: any;
+        switch (sortBy) {
+          case 'id': aVal = a.requirement_id; bVal = b.requirement_id; break;
+          case 'company': aVal = a.company_name || ''; bVal = b.company_name || ''; break;
+          case 'skill': aVal = a.key_skill || ''; bVal = b.key_skill || ''; break;
+          case 'recruiter': aVal = a.recruiter_name || ''; bVal = b.recruiter_name || ''; break;
+          case 'created': aVal = new Date(a.created_date); bVal = new Date(b.created_date); break;
+          case 'budget': aVal = a.budget || 0; bVal = b.budget || 0; break;
+          case 'status': aVal = a.status || ''; bVal = b.status || ''; break;
+          default: return 0;
+        }
+        if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1;
+        if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+    return filtered;
+  }, [requirements, searchTerm, statusFilter, showActiveOnly, sortBy, sortOrder]);
 
   const paginatedRequirements = useMemo(() => 
     filteredRequirements.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage), 
@@ -184,6 +207,20 @@ const RequirementList: React.FC = () => {
       );
       setAssignLoading(false);
     }
+  };
+
+  const handleSort = (column: string) => {
+    if (sortBy === column) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(column);
+      setSortOrder('asc');
+    }
+  };
+
+  const getSortIcon = (column: string) => {
+    if (sortBy !== column) return null;
+    return sortOrder === 'asc' ? <ArrowUpward fontSize="small" /> : <ArrowDownward fontSize="small" />;
   };
 
   const getStatusColor = (statusId: number) => {
@@ -322,15 +359,29 @@ const RequirementList: React.FC = () => {
               <Table>
                 <TableHead>
                   <TableRow sx={tableStyles.headerRow}>
-                    <TableCell sx={tableStyles.headerCell}>ID</TableCell>
-                    <TableCell sx={tableStyles.headerCell}>Company</TableCell>
-                    <TableCell sx={tableStyles.headerCell}>Key Skill</TableCell>
-                    <TableCell sx={tableStyles.headerCell}>Recruiter</TableCell>
-                    <TableCell sx={tableStyles.headerCell}>Created</TableCell>
+                    <TableCell sx={{...tableStyles.headerCell, cursor: 'pointer'}} onClick={() => handleSort('id')}>
+                      <Box sx={{display: 'flex', alignItems: 'center', gap: 1}}>ID {getSortIcon('id')}</Box>
+                    </TableCell>
+                    <TableCell sx={{...tableStyles.headerCell, cursor: 'pointer'}} onClick={() => handleSort('company')}>
+                      <Box sx={{display: 'flex', alignItems: 'center', gap: 1}}>Company {getSortIcon('company')}</Box>
+                    </TableCell>
+                    <TableCell sx={{...tableStyles.headerCell, cursor: 'pointer'}} onClick={() => handleSort('skill')}>
+                      <Box sx={{display: 'flex', alignItems: 'center', gap: 1}}>Key Skill {getSortIcon('skill')}</Box>
+                    </TableCell>
+                    <TableCell sx={{...tableStyles.headerCell, cursor: 'pointer'}} onClick={() => handleSort('recruiter')}>
+                      <Box sx={{display: 'flex', alignItems: 'center', gap: 1}}>Recruiter {getSortIcon('recruiter')}</Box>
+                    </TableCell>
+                    <TableCell sx={{...tableStyles.headerCell, cursor: 'pointer'}} onClick={() => handleSort('created')}>
+                      <Box sx={{display: 'flex', alignItems: 'center', gap: 1}}>Created {getSortIcon('created')}</Box>
+                    </TableCell>
                     <TableCell sx={tableStyles.headerCell}>Location</TableCell>
-                    <TableCell sx={tableStyles.headerCell}>Budget</TableCell>
+                    <TableCell sx={{...tableStyles.headerCell, cursor: 'pointer'}} onClick={() => handleSort('budget')}>
+                      <Box sx={{display: 'flex', alignItems: 'center', gap: 1}}>Budget {getSortIcon('budget')}</Box>
+                    </TableCell>
                     <TableCell sx={tableStyles.headerCell}>Expected Billing</TableCell>
-                    <TableCell sx={tableStyles.headerCell}>Status</TableCell>
+                    <TableCell sx={{...tableStyles.headerCell, cursor: 'pointer'}} onClick={() => handleSort('status')}>
+                      <Box sx={{display: 'flex', alignItems: 'center', gap: 1}}>Status {getSortIcon('status')}</Box>
+                    </TableCell>
                     <TableCell sx={tableStyles.headerCell}>Actions</TableCell>
                   </TableRow>
                 </TableHead>
