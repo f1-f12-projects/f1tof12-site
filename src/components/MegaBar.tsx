@@ -36,7 +36,8 @@ const MegaBar: React.FC = () => {
       { label: 'Manage SPOC', path: '/company/spoc' }
     ],
     reports: [
-      { label: 'Invoice', path: '/reports/invoices' }
+      { label: 'Invoice', path: '/reports/invoices' },
+      { label: 'Profile Dashboard', path: '/reports/profiles' }
     ],
     main: [
       { label: 'Requirements', path: '/requirements', icon: <BusinessCenter /> },

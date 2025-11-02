@@ -13,9 +13,8 @@ export const FORM_FIELDS = [
 
 export const textFieldSx = {
   '& .MuiOutlinedInput-root': {
-    backgroundColor: 'white',
     '&.Mui-focused fieldset': {
-      borderColor: '#6366f1'
+      borderColor: 'primary.main'
     }
   }
 };

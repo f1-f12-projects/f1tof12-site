@@ -47,22 +47,29 @@ const AddProfileDialog: React.FC<AddProfileDialogProps> = ({
       PaperProps={{
         sx: {
           borderRadius: 3,
-          maxHeight: '90vh',
+          maxHeight: '95vh',
+          minHeight: '70vh',
           m: 1
         }
       }}
     >
       <DialogTitle sx={{ 
-        background: (theme) => theme.palette.mode === 'dark' ? 'linear-gradient(135deg, #424242 0%, #616161 100%)' : 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-        color: 'white',
+        bgcolor: 'primary.main',
+        color: 'primary.contrastText',
         fontSize: '1.25rem', 
         fontWeight: 600,
         py: 2
       }}>
         👤 Add New Candidate
       </DialogTitle>
-      <DialogContent sx={{ p: 3, backgroundColor: (theme) => theme.palette.mode === 'dark' ? '#2c2c2c' : '#fafafa' }}>
-        <Grid container spacing={2.5} sx={{ mt: 0.5 }}>
+      <DialogContent sx={{ 
+        p: 3, 
+        bgcolor: 'background.default',
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column'
+      }}>
+        <Grid container spacing={5} sx={{ mt: 0.5, flex: 1 }}>
           {FORM_FIELDS.map(({ field, label, type, xs, sm }) => (
             <FormField
               key={field}
@@ -79,7 +86,11 @@ const AddProfileDialog: React.FC<AddProfileDialogProps> = ({
           ))}
         </Grid>
       </DialogContent>
-      <DialogActions sx={{ p: 2.5, backgroundColor: (theme) => theme.palette.mode === 'dark' ? '#424242' : '#f5f5f5', gap: 1 }}>
+      <DialogActions sx={{ 
+        p: 2.5, 
+        bgcolor: 'background.paper', 
+        gap: 1 
+      }}>
         <Button 
           onClick={onClose}
           variant="outlined"
@@ -91,13 +102,7 @@ const AddProfileDialog: React.FC<AddProfileDialogProps> = ({
           variant="contained" 
           onClick={onSubmit}
           disabled={submitting}
-          sx={{
-            borderRadius: 2,
-            background: (theme) => theme.palette.mode === 'dark' ? 'linear-gradient(135deg, #424242 0%, #616161 100%)' : 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-            '&:hover': {
-              background: (theme) => theme.palette.mode === 'dark' ? 'linear-gradient(135deg, #616161 0%, #757575 100%)' : 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)'
-            }
-          }}
+          sx={{ borderRadius: 2 }}
         >
           {submitting ? <CircularProgress size={20} color="inherit" /> : 'Add Candidate'}
         </Button>

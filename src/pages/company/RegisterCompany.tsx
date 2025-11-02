@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Container, Paper, Typography, TextField, Button, Grid } from '@mui/material';
+import { Box, Container, Paper, Typography, TextField, Button, Grid, CircularProgress } from '@mui/material';
 import { companyService } from '../../services/companyService';
 import { alert } from '../../utils/alert';
 import { useAuth } from '../../context/AuthContext';
@@ -22,6 +22,8 @@ const RegisterCompany: React.FC = () => {
     companyAddress: '',
     emailId: ''
   });
+  
+  const [loading, setLoading] = useState(false);
   
   useEffect(() => {
     if (!isAuthenticated) {
@@ -62,7 +64,7 @@ const RegisterCompany: React.FC = () => {
     return await handleApiResponse(
       () => companyService.registerCompany(companyData),
       () => {
-        setTimeout(() => navigate('/'), 2000);
+        setTimeout(() => navigate('/company/list'), 2000);
       }
     );
   };
@@ -70,6 +72,7 @@ const RegisterCompany: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
+      setLoading(true);
       await registerCompany();
     }
   };
@@ -80,8 +83,6 @@ const RegisterCompany: React.FC = () => {
         <Typography variant="h4" component="h1" gutterBottom align="center" sx={{ mb: 4, fontWeight: 600 }}>
           Register Company
         </Typography>
-        
-
         
         <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 3 }}>
           <Grid container spacing={3}>
@@ -113,7 +114,7 @@ const RegisterCompany: React.FC = () => {
                 variant="contained"
                 size="large"
                 fullWidth
-
+                disabled={loading}
                 sx={{ 
                   mt: 2, 
                   py: 1.5,
@@ -122,7 +123,7 @@ const RegisterCompany: React.FC = () => {
                   fontSize: '1.1rem'
                 }}
               >
-                Register Company
+                {loading ? <CircularProgress size={24} color="inherit" /> : 'Register Company'}
               </Button>
             </Grid>
           </Grid>

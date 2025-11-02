@@ -57,12 +57,12 @@ const ProfileContent: React.FC<ProfileContentProps> = React.memo(({ profile, cop
             border: (theme) => `1px solid ${theme.palette.mode === 'dark' ? '#555' : '#e0e0e0'}`,
             '&:hover': { 
               background: (theme) => theme.palette.mode === 'dark' ? 'linear-gradient(135deg, #616161 0%, #757575 100%)' : 'linear-gradient(135deg, #e8eaf6 0%, #c5cae9 100%)',
-              borderColor: (theme) => theme.palette.mode === 'dark' ? '#90caf9' : '#9c27b0'
+              borderColor: 'primary.main'
             },
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
             ...((index === 0 || index === 1) && { mt: 2 }) 
           }}>
-            <Typography variant="h6" sx={{ fontWeight: 500, mb: 2, color: (theme) => theme.palette.mode === 'dark' ? theme.palette.primary.main : '#6a1b9a' }}>
+            <Typography variant="h6" sx={{ fontWeight: 500, mb: 2, color: 'primary.main' }}>
               {section.title}
             </Typography>
             {section.items.map((item, itemIndex) => (
@@ -88,11 +88,11 @@ const ProfileContent: React.FC<ProfileContentProps> = React.memo(({ profile, cop
           border: '1px solid #e0e0e0',
           '&:hover': { 
             background: (theme) => theme.palette.mode === 'dark' ? 'linear-gradient(135deg, #616161 0%, #757575 100%)' : 'linear-gradient(135deg, #e8eaf6 0%, #c5cae9 100%)',
-            borderColor: (theme) => theme.palette.mode === 'dark' ? '#90caf9' : '#9c27b0'
+            borderColor: 'primary.main'
           },
           transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
         }}>
-          <Typography variant="h6" sx={{ fontWeight: 500, mb: 2, color: '#6a1b9a' }}>
+          <Typography variant="h6" sx={{ fontWeight: 500, mb: 2, color: 'primary.main' }}>
             📝 Additional Notes
           </Typography>
           <TextField
@@ -104,9 +104,12 @@ const ProfileContent: React.FC<ProfileContentProps> = React.memo(({ profile, cop
             InputProps={{
               readOnly: true,
               sx: {
-                backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                backgroundColor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.7)',
                 '& .MuiOutlinedInput-notchedOutline': {
-                  borderColor: 'rgba(0, 0, 0, 0.23)'
+                  borderColor: 'primary.main'
+                },
+                '&:hover .MuiOutlinedInput-notchedOutline': {
+                  borderColor: 'primary.main'
                 }
               }
             }}
@@ -139,7 +142,7 @@ const ProfileDetailsDialog: React.FC<ProfileDetailsDialogProps> = ({ open, onClo
     selectedStatus: '',
     selectedStage: '',
     statusOptions: [] as string[],
-    stageOptions: [] as string[],
+    stageOptions: [] as {stage: string, id: number}[],
     showConfirmation: false,
     copyMessage: '',
     showCopySnackbar: false,
@@ -176,7 +179,7 @@ const ProfileDetailsDialog: React.FC<ProfileDetailsDialogProps> = ({ open, onClo
 
     const loadData = async () => {
       try {
-        const stages = await profileStatusService.getStageList();
+        const stages = await profileStatusService.getStagesWithIds();
         if (!Array.isArray(stages)) return;
 
         let selectedStage = '';
@@ -190,7 +193,7 @@ const ProfileDetailsDialog: React.FC<ProfileDetailsDialogProps> = ({ open, onClo
           ]);
 
           if (stage) {
-            const stageIndex = stages.findIndex(s => s === stage);
+            const stageIndex = stages.findIndex(s => s.stage === stage);
             selectedStage = stageIndex !== -1 ? (stageIndex + 1).toString() : '';
             
             statusOptions = await profileStatusService.getStatusesByStage(stage);
@@ -225,7 +228,7 @@ const ProfileDetailsDialog: React.FC<ProfileDetailsDialogProps> = ({ open, onClo
   const handleStageChange = useCallback(async (newStage: string) => {
     try {
       const stageIndex = parseInt(newStage) - 1;
-      const stageName = state.stageOptions[stageIndex];
+      const stageName = state.stageOptions[stageIndex].stage;
       const statuses = await profileStatusService.getStatusesByStage(stageName);
       
       let selectedStatus = '';
@@ -254,7 +257,7 @@ const ProfileDetailsDialog: React.FC<ProfileDetailsDialogProps> = ({ open, onClo
       if (newStatus && state.selectedStage) {
         const stageIndex = parseInt(state.selectedStage) - 1;
         const statusIndex = parseInt(newStatus) - 1;
-        const stageName = state.stageOptions[stageIndex];
+        const stageName = state.stageOptions[stageIndex].stage;
         const statusName = state.statusOptions[statusIndex];
         currentStatusId = await profileStatusService.getIdByStageAndStatus(stageName, statusName) || null;
       }
@@ -281,7 +284,7 @@ const ProfileDetailsDialog: React.FC<ProfileDetailsDialogProps> = ({ open, onClo
       setState(prev => ({ ...prev, isUpdating: true }));
       const stageIndex = parseInt(state.selectedStage) - 1;
       const statusIndex = parseInt(state.selectedStatus) - 1;
-      const stageName = state.stageOptions[stageIndex];
+      const stageName = state.stageOptions[stageIndex].stage;
       const statusName = state.statusOptions[statusIndex];
       const statusId = await profileStatusService.getIdByStageAndStatus(stageName, statusName);
       
@@ -385,7 +388,7 @@ const ProfileDetailsDialog: React.FC<ProfileDetailsDialogProps> = ({ open, onClo
             >
               {state.stageOptions.map((option, index) => (
                 <MenuItem key={index} value={(index + 1).toString()}>
-                  {option}
+                  {option.stage}
                 </MenuItem>
               ))}
             </Select>

@@ -73,14 +73,7 @@ const AddRequirement: React.FC = () => {
     initializeAuth();
   }, [checkAuthentication, navigate]);
 
-  useEffect(() => {
-    if (form.company_id) {
-      loadSPOCsByCompany(Number(form.company_id));
-      setForm(prev => ({ ...prev, spoc_id: '' }));
-    } else {
-      setFilteredSpocs([]);
-    }
-  }, [form.company_id]);
+
 
   const loadData = async () => {
     await handleApiResponse(
@@ -102,6 +95,14 @@ const AddRequirement: React.FC = () => {
     setForm(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: undefined }));
+    }
+    
+    // Handle company change to fetch SPOCs
+    if (field === 'company_id' && value) {
+      loadSPOCsByCompany(Number(value));
+      setForm(prev => ({ ...prev, spoc_id: '' }));
+    } else if (field === 'company_id' && !value) {
+      setFilteredSpocs([]);
     }
   };
 

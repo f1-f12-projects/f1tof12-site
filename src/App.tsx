@@ -22,6 +22,7 @@ import InvoiceReport from './pages/reports/InvoiceReport';
 import RequirementList from './pages/requirements/RequirementList';
 import AddRequirement from './pages/requirements/AddRequirement';
 import ProcessProfiles from './pages/profiles/ProcessProfiles';
+import ProfileDashboard from './pages/reports/ProfileDashboard';
 
 const HomePage: React.FC = () => (
   <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -58,6 +59,7 @@ const routes = {
 
   // Profile Routes
   '/profiles': ProcessProfiles,
+  '/reports/profiles': ProfileDashboard,
 };
 
 const comingSoonRoutes = [

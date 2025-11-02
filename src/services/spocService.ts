@@ -24,6 +24,7 @@ export const spocService = {
     
     if (response.success) {
       cacheService.delete(CACHE_KEY);
+      cacheService.clearByPattern('spocs_company_');
     }
     
     return response;
@@ -35,6 +36,7 @@ export const spocService = {
     
     if (response.success) {
       cacheService.delete(CACHE_KEY);
+      cacheService.clearByPattern('spocs_company_');
     }
     
     return response;

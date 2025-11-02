@@ -63,8 +63,9 @@ const ProfileDashboard: React.FC<ProfileDashboardProps> = ({ selectedRequirement
 
       const actualData = Array.isArray(data) ? data : ((data as any)?.data || []);
       setProfileStatuses(actualData);
-      const uniqueStages = Array.from(new Set(actualData.map((item: any) => item.stage))) as string[];
-      setStages(uniqueStages);
+      const stagesWithIds = await profileStatusService.getStagesWithIds();
+      const sortedStages = stagesWithIds.map(item => item.stage);
+      setStages(sortedStages);
     } catch (error) {
       console.error('Failed to load candidate statuses:', error);
       setProfileStatuses([]);
