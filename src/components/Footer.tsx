@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Typography, Link, Grid } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
-import packageJson from '../../package.json';
+import { APP_VERSION } from '../utils/version';
 
 const Footer: React.FC = () => {
   return (
@@ -40,7 +40,7 @@ const Footer: React.FC = () => {
       </Grid>
       <Box sx={{ borderTop: 1, borderColor: 'grey.700', mt: 4, pt: 2, textAlign: 'center' }}>
         <Typography variant="body2">
-          © 2025 F1toF12. All rights reserved. v{packageJson.version}
+          © 2025 F1toF12. All rights reserved. v{APP_VERSION}
         </Typography>
       </Box>
     </Box>
