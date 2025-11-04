@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.0] - 2025-01-27
+
+### Added
+- Report to see daily, weekly, monthly progress on Profiles
+
 ## [3.0.0] - 2025-01-27
 
 ### Enhanced
