@@ -1,0 +1,36 @@
+name: F1toF12 Deploy to Production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+    
+    - run: npm ci
+    
+    - run: |
+        echo "REACT_APP_BASE_URL=${{ secrets.REACT_APP_BASE_URL }}" > .env
+        echo "REACT_APP_CLOUDFRONT_SECRET=${{ secrets.REACT_APP_CLOUDFRONT_SECRET }}" >> .env
+        echo "${{ secrets.PRODUCTION_ENV }}" >> .env
+    
+    - run: npm run build
+    
+    - run: |
+        aws s3 sync build/ s3://${{ secrets.S3_BUCKET }} --delete
+        aws cloudfront create-invalidation --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} --paths "/*"
