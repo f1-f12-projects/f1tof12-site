@@ -120,11 +120,11 @@ export const requirementService = {
     return await apiService.get<ApiResponse<Record<string, number>>>(endpoint);
   },
 
-  async getProfilesByStage(requirement_id: number, stage: string): Promise<ApiResponse<(Profile & { stage: string })[]>> {
+  async getProfilesByStage(requirement_id: number, stage: string): Promise<ApiResponse<(Profile & { stage: string; recruiter_name: string })[]>> {
     const endpoint = process.env.REACT_APP_REQUIREMENTS_GET_PROFILE_STAGE_ENDPOINT!
       .replace('{requirement_id}', requirement_id.toString())
       .replace('{stage}', stage);
-    return await apiService.get<ApiResponse<(Profile & { stage: string })[]>>(endpoint);
+    return await apiService.get<ApiResponse<(Profile & { stage: string; recruiter_name: string })[]>>(endpoint);
   },
 
   clearCache(): void {
