@@ -126,7 +126,7 @@ const InvoiceReport: React.FC = () => {
           </Select>
         </FormControl>
         <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-          Showing invoice status trends by month (based on raised_date)
+          Showing invoice status trends by month (based on Raised Date)
         </Typography>
       </Box>
 

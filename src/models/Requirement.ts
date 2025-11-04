@@ -15,5 +15,6 @@ export interface Requirement {
   req_cust_ref_id?: string;
   updated_date?: string;
   location: string;
+  role: string;
   spoc_id: number;
 }

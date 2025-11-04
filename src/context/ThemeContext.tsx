@@ -51,10 +51,14 @@ export const ThemeContextProvider: React.FC<{ children: React.ReactNode }> = ({ 
     palette: {
       mode: actualTheme,
       primary: {
-        main: '#1976d2',
+        main: actualTheme === 'dark' ? '#90caf9' : '#1976d2',
       },
       secondary: {
-        main: '#dc004e',
+        main: actualTheme === 'dark' ? '#f48fb1' : '#dc004e',
+      },
+      background: {
+        default: actualTheme === 'dark' ? '#121212' : '#fafafa',
+        paper: actualTheme === 'dark' ? '#1e1e1e' : '#ffffff',
       },
     },
     typography: {

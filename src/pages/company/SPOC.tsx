@@ -21,6 +21,7 @@ const SPOC: React.FC = () => {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+  const [addLoading, setAddLoading] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState('');
 
   const [editOpen, setEditOpen] = useState(false);
@@ -71,6 +72,7 @@ const SPOC: React.FC = () => {
       return;
     }
 
+    setAddLoading(true);
     await handleApiResponse(
       () => spocService.createSPOC({
         name: newSpoc.name,
@@ -90,6 +92,7 @@ const SPOC: React.FC = () => {
         );
       }
     );
+    setAddLoading(false);
   }, [newSpoc, companies]);
 
   const handleEdit = useCallback((spoc: SPOCModel) => {
@@ -317,8 +320,15 @@ const SPOC: React.FC = () => {
             </Stack>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setAddOpen(false)}>Cancel</Button>
-            <Button onClick={handleAddSpoc} variant="contained">Add SPOC</Button>
+            <Button onClick={() => setAddOpen(false)} disabled={addLoading}>Cancel</Button>
+            <Button 
+              onClick={handleAddSpoc} 
+              variant="contained" 
+              disabled={addLoading}
+              startIcon={addLoading ? <CircularProgress size={16} /> : undefined}
+            >
+              {addLoading ? 'Adding...' : 'Add SPOC'}
+            </Button>
           </DialogActions>
         </Dialog>
         

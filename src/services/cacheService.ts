@@ -64,6 +64,22 @@ class CacheService {
   has(key: string): boolean {
     return this.get(key) !== null;
   }
+
+  clearByPattern(pattern: string) {
+    // Clear from memory cache
+    Array.from(this.cache.keys()).forEach(key => {
+      if (key.includes(pattern)) {
+        this.cache.delete(key);
+      }
+    });
+    
+    // Clear from localStorage
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('cache_') && key.includes(pattern)) {
+        localStorage.removeItem(key);
+      }
+    });
+  }
 }
 
 export const cacheService = new CacheService();

@@ -14,8 +14,8 @@ const apiCall = async <T>(method: string, endpoint: string, body?: any): Promise
     headers['x-cloudfront-secret'] = process.env.REACT_APP_CLOUDFRONT_SECRET;
   }
   
-  // Add custom origin header
-  headers['x-origin'] = window.location.origin;
+  // Add custom origin header (only if required by backend)
+  // headers['x-origin'] = window.location.origin;
   
   // Add Bearer token for all endpoints except login
   if (!endpoint.includes('/login')) {
@@ -57,7 +57,14 @@ const apiCall = async <T>(method: string, endpoint: string, body?: any): Promise
       throw new Error('Authentication failed. Please try logging in again.');
     }
     const errorData = await response.json().catch(() => ({}));
-    const error = new Error(`HTTP ${response.status}: ${errorData.detail || errorData.message || response.statusText}`);
+    let errorMessage = errorData.detail?.message || errorData.detail || errorData.message || errorData.error;
+    if (!errorMessage) {
+      errorMessage = typeof errorData === 'string' ? errorData : JSON.stringify(errorData);
+    }
+    if (!errorMessage || errorMessage === '{}') {
+      errorMessage = response.statusText;
+    }
+    const error = new Error(errorMessage);
     (error as any).status = response.status;
     (error as any).data = errorData;
     throw error;

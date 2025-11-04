@@ -1,14 +1,16 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppBar, Toolbar, Typography, Button, Box } from '@mui/material';
 import { useAuth } from '../context/AuthContext';
 import { alert } from '../utils/alert';
+import { userService } from '../services/userService';
 import { apiService } from '../services/apiService';
 import ThemeToggle from './ThemeToggle';
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
-  const { isAuthenticated, logout, username, userData } = useAuth();
+  const { isAuthenticated, logout, username, authToken } = useAuth();
+  const [givenName, setGivenName] = useState<String>();
   
   const handleAuthClick = async () => {
     if (isAuthenticated) {
@@ -23,6 +25,20 @@ const Header: React.FC = () => {
       navigate('/login');
     }
   };
+
+  // Add useEffect to get Given name
+  useEffect(() => {
+    const getGivenName = async () => {
+      if (isAuthenticated && username && authToken) {
+        // Small delay to ensure token is saved to localStorage
+        setTimeout(async () => {
+          const userDetails = await userService.getUserDetails(username);
+          setGivenName(userDetails?.given_name || undefined);
+        }, 100);
+      }
+    };
+    getGivenName();
+  }, [isAuthenticated, username, authToken]);
 
   const handleHealthCheck = async () => {
     try {
@@ -47,9 +63,20 @@ const Header: React.FC = () => {
           </Typography>
         </Box>
         <ThemeToggle />
-        {isAuthenticated && userData && (
-          <Typography variant="body2" sx={{ ml: 2, mr: 1 }}>
-            Hi, {userData.givenName}
+        {isAuthenticated && (
+          <Typography 
+            variant="body1" 
+            sx={{ 
+              ml: 2, 
+              mr: 1, 
+              color: 'white',
+              fontWeight: 500,
+              backgroundColor: 'rgba(255,255,255,0.1)',
+              px: 1,
+              borderRadius: 1
+            }}
+          >
+            Hi, {givenName || username || 'User'}
           </Typography>
         )}
         <Button 

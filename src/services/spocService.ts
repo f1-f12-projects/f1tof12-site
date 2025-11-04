@@ -24,6 +24,7 @@ export const spocService = {
     
     if (response.success) {
       cacheService.delete(CACHE_KEY);
+      cacheService.clearByPattern('spocs_company_');
     }
     
     return response;
@@ -35,6 +36,22 @@ export const spocService = {
     
     if (response.success) {
       cacheService.delete(CACHE_KEY);
+      cacheService.clearByPattern('spocs_company_');
+    }
+    
+    return response;
+  },
+
+  async getSPOCsByCompany(companyId: number): Promise<ApiResponse<SPOC[]>> {
+    const cacheKey = `spocs_company_${companyId}`;
+    const cached = cacheService.get(cacheKey);
+    if (cached) return cached;
+    
+    const endpoint = process.env.REACT_APP_SPOC_BY_COMPANY_ENDPOINT!.replace('{company_id}', companyId.toString());
+    const response = await apiService.get<ApiResponse<SPOC[]>>(endpoint);
+    
+    if (response.success) {
+      cacheService.set(cacheKey, response);
     }
     
     return response;

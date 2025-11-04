@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, List, ListItem, ListItemButton, ListItemText, Collapse, Drawer, IconButton } from '@mui/material';
-import { ExpandLess, ExpandMore, Business, People, Event, Assessment, AccountBalance, AdminPanelSettings, Menu } from '@mui/icons-material';
+import { ExpandLess, ExpandMore, Business, BusinessCenter, Person, Assessment, AccountBalance, AdminPanelSettings, Menu } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 import { roleHelper } from '../utils/roleHelper';
 
@@ -36,11 +36,12 @@ const MegaBar: React.FC = () => {
       { label: 'Manage SPOC', path: '/company/spoc' }
     ],
     reports: [
-      { label: 'Invoice', path: '/reports/invoices' }
+      { label: 'Invoice', path: '/reports/invoices' },
+      { label: 'Profile Dashboard', path: '/reports/profiles' }
     ],
     main: [
-      { label: 'Requirements', path: '/requirements', icon: <People /> },
-      { label: 'Profiles', path: '/profiles', icon: <Event /> },
+      { label: 'Requirements', path: '/requirements', icon: <BusinessCenter /> },
+      { label: 'Candidate', path: '/profiles', icon: <Person /> },
       { label: 'Reports', path: '/reports', icon: <Assessment /> },
       { label: 'Finance', path: '/company/invoices', icon: <AccountBalance /> },
       { label: 'Admin', path: '/admin/users', icon: <AccountBalance /> }
@@ -95,7 +96,7 @@ const MegaBar: React.FC = () => {
                 </ListItem>
                 <Collapse in={reportsOpen} timeout="auto" unmountOnExit>
                   <List component="div" disablePadding>
-                    {menuItems.reports.map(({ label, path }) => (
+                    {menuItems.reports.filter(({ path }) => visibleMenuItems.includes(path)).map(({ label, path }) => (
                       <ListItem key={path} disablePadding>
                         <ListItemButton sx={{ pl: 4 }} onClick={() => handleNavigate(path)}>
                           <ListItemText primary={label} />

@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Container, Paper, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Box, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Button, Chip, Avatar, Stack, Card, ToggleButton, ToggleButtonGroup, CircularProgress, MenuItem, Checkbox, TablePagination, FormControlLabel, Radio } from '@mui/material';
-import { Search, Assignment, Clear, Visibility, PersonAdd } from '@mui/icons-material';
+import { Container, Paper, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Box, IconButton, Button, Chip, Avatar, Stack, Card, ToggleButton, ToggleButtonGroup, CircularProgress, MenuItem, Checkbox, TablePagination, FormControlLabel } from '@mui/material';
+import { Search, Assignment, Clear, Visibility, PersonAdd, ArrowUpward, ArrowDownward } from '@mui/icons-material';
 import RequirementViewDialog from '../../components/RequirementViewDialog';
+import AssignRecruiterDialog from '../../components/AssignRecruiterDialog';
 import { Requirement } from '../../models/Requirement';
 import { RequirementStatus } from '../../models/RequirementStatus';
 import { requirementService } from '../../services/requirementService';
@@ -21,13 +22,15 @@ const RequirementList: React.FC = () => {
   const { checkAuthentication } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
-  const [showActiveOnly, setShowActiveOnly] = useState(false);
+  const [showActiveOnly, setShowActiveOnly] = useState(true);
   const [requirements, setRequirements] = useState<Requirement[]>([]);
   const [statuses, setStatuses] = useState<RequirementStatus[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [companies, setCompanies] = useState<any[]>([]);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [sortBy, setSortBy] = useState<string>('');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   const [loading, setLoading] = useState(false);
   const [assignLoading, setAssignLoading] = useState(false);
@@ -36,6 +39,9 @@ const RequirementList: React.FC = () => {
   const [viewRequirement, setViewRequirement] = useState<Requirement | null>(null);
   const [assignRequirement, setAssignRequirement] = useState<Requirement | null>(null);
   const [assignForm, setAssignForm] = useState({ recruiter_name: '' });
+  const [assignedUsers, setAssignedUsers] = useState<{ username: string; given_name: string | null; family_name: string | null }[]>([]);
+  const [unassignedUsers, setUnassignedUsers] = useState<User[]>([]);
+  const [unassignLoading, setUnassignLoading] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -100,15 +106,37 @@ const RequirementList: React.FC = () => {
     };
   }, [checkAuthentication, navigate]);
 
-  const filteredRequirements = useMemo(() => 
-    requirements.filter(requirement => {
+  const filteredRequirements = useMemo(() => {
+    let filtered = requirements.filter(requirement => {
       const searchTermLower = searchTerm.toLowerCase();
       const matchesSearch = (requirement.company_name || '').toLowerCase().includes(searchTermLower) || 
-                           (requirement.key_skill || '').toLowerCase().includes(searchTermLower);
+                           (requirement.key_skill || '').toLowerCase().includes(searchTermLower) ||
+                           requirement.requirement_id.toString().includes(searchTermLower);
       const matchesStatus = statusFilter.length === 0 || (requirement.status_id && statusFilter.includes(requirement.status_id.toString()));
-      const matchesActive = !showActiveOnly || (requirement.status_id !== 9 && requirement.status_id !== 10);
+      const matchesActive = !showActiveOnly || (requirement.status_id !== 4 && requirement.status_id !== 5);
       return matchesSearch && matchesStatus && matchesActive;
-    }), [requirements, searchTerm, statusFilter, showActiveOnly]);
+    });
+
+    if (sortBy) {
+      filtered.sort((a, b) => {
+        let aVal: any, bVal: any;
+        switch (sortBy) {
+          case 'id': aVal = a.requirement_id; bVal = b.requirement_id; break;
+          case 'company': aVal = a.company_name || ''; bVal = b.company_name || ''; break;
+          case 'skill': aVal = a.key_skill || ''; bVal = b.key_skill || ''; break;
+          case 'recruiter': aVal = a.recruiter_name || ''; bVal = b.recruiter_name || ''; break;
+          case 'created': aVal = new Date(a.created_date); bVal = new Date(b.created_date); break;
+          case 'budget': aVal = a.budget || 0; bVal = b.budget || 0; break;
+          case 'status': aVal = a.status || ''; bVal = b.status || ''; break;
+          default: return 0;
+        }
+        if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1;
+        if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+    return filtered;
+  }, [requirements, searchTerm, statusFilter, showActiveOnly, sortBy, sortOrder]);
 
   const paginatedRequirements = useMemo(() => 
     filteredRequirements.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage), 
@@ -119,10 +147,49 @@ const RequirementList: React.FC = () => {
     setViewOpen(true);
   };
 
-  const showAssignRecruiterDialog = (requirement: Requirement) => {
+  const showAssignRecruiterDialog = async (requirement: Requirement) => {
     setAssignRequirement(requirement);
     setAssignForm({ recruiter_name: requirement.recruiter_name || '' });
+    await loadAssignedUsers(requirement.requirement_id);
     setAssignOpen(true);
+  };
+
+  const loadAssignedUsers = async (requirementId: number) => {
+    try {
+      const recruiters = await requirementService.getRecruiterNames(requirementId);
+      const recruitersWithDetails = await Promise.all(
+        recruiters.map(async (username: string) => {
+          const userDetails = await userService.getUserName(username);
+          return {
+            username,
+            given_name: userDetails?.given_name || null,
+            family_name: userDetails?.family_name || null
+          };
+        })
+      );
+      setAssignedUsers(recruitersWithDetails);
+      
+      const assignedUsernames = new Set(recruiters);
+      const filteredUsers = users.filter(user => !assignedUsernames.has(user.username));
+      setUnassignedUsers(filteredUsers);
+    } catch (error) {
+      console.error('Error loading assigned users:', error);
+      setAssignedUsers([]);
+      setUnassignedUsers(users);
+    }
+  };
+
+  const handleUnassign = async (recruiterName: string) => {
+    if (!assignRequirement) return;
+    setUnassignLoading(true);
+    try {
+      await requirementService.changeWorkingStatus(assignRequirement.requirement_id, recruiterName, "No");
+      await loadAssignedUsers(assignRequirement.requirement_id);
+    } catch (error) {
+      console.error('Error unassigning recruiter:', error);
+    } finally {
+      setUnassignLoading(false);
+    }
   };
 
   const handleAssignSave = async () => {
@@ -130,15 +197,30 @@ const RequirementList: React.FC = () => {
       setAssignLoading(true);
       await handleApiResponse(
         () => requirementService.assignRecruiter(assignRequirement.requirement_id, assignForm.recruiter_name),
-        () => {
+        async () => {
           setRequirements(prev => prev.map(r => 
             r.requirement_id === assignRequirement.requirement_id ? { ...r, recruiter_name: assignForm.recruiter_name } : r
           ));
-          setAssignOpen(false);
+          await loadAssignedUsers(assignRequirement.requirement_id);
+          setAssignForm({ recruiter_name: '' });
         }
       );
       setAssignLoading(false);
     }
+  };
+
+  const handleSort = (column: string) => {
+    if (sortBy === column) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(column);
+      setSortOrder('asc');
+    }
+  };
+
+  const getSortIcon = (column: string) => {
+    if (sortBy !== column) return null;
+    return sortOrder === 'asc' ? <ArrowUpward fontSize="small" /> : <ArrowDownward fontSize="small" />;
   };
 
   const getStatusColor = (statusId: number) => {
@@ -187,7 +269,7 @@ const RequirementList: React.FC = () => {
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 4 }}>
             <TextField
               fullWidth
-              placeholder="Search by company or skill..."
+              placeholder="Search by ID, company or skill..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               InputProps={{
@@ -277,14 +359,29 @@ const RequirementList: React.FC = () => {
               <Table>
                 <TableHead>
                   <TableRow sx={tableStyles.headerRow}>
-                    <TableCell sx={tableStyles.headerCell}>Company</TableCell>
-                    <TableCell sx={tableStyles.headerCell}>Key Skill</TableCell>
-                    <TableCell sx={tableStyles.headerCell}>Recruiter</TableCell>
-                    <TableCell sx={tableStyles.headerCell}>Created</TableCell>
+                    <TableCell sx={{...tableStyles.headerCell, cursor: 'pointer'}} onClick={() => handleSort('id')}>
+                      <Box sx={{display: 'flex', alignItems: 'center', gap: 1}}>ID {getSortIcon('id')}</Box>
+                    </TableCell>
+                    <TableCell sx={{...tableStyles.headerCell, cursor: 'pointer'}} onClick={() => handleSort('company')}>
+                      <Box sx={{display: 'flex', alignItems: 'center', gap: 1}}>Company {getSortIcon('company')}</Box>
+                    </TableCell>
+                    <TableCell sx={{...tableStyles.headerCell, cursor: 'pointer'}} onClick={() => handleSort('skill')}>
+                      <Box sx={{display: 'flex', alignItems: 'center', gap: 1}}>Key Skill {getSortIcon('skill')}</Box>
+                    </TableCell>
+                    <TableCell sx={{...tableStyles.headerCell, cursor: 'pointer'}} onClick={() => handleSort('recruiter')}>
+                      <Box sx={{display: 'flex', alignItems: 'center', gap: 1}}>Recruiter {getSortIcon('recruiter')}</Box>
+                    </TableCell>
+                    <TableCell sx={{...tableStyles.headerCell, cursor: 'pointer'}} onClick={() => handleSort('created')}>
+                      <Box sx={{display: 'flex', alignItems: 'center', gap: 1}}>Created {getSortIcon('created')}</Box>
+                    </TableCell>
                     <TableCell sx={tableStyles.headerCell}>Location</TableCell>
-                    <TableCell sx={tableStyles.headerCell}>Budget</TableCell>
+                    <TableCell sx={{...tableStyles.headerCell, cursor: 'pointer'}} onClick={() => handleSort('budget')}>
+                      <Box sx={{display: 'flex', alignItems: 'center', gap: 1}}>Budget {getSortIcon('budget')}</Box>
+                    </TableCell>
                     <TableCell sx={tableStyles.headerCell}>Expected Billing</TableCell>
-                    <TableCell sx={tableStyles.headerCell}>Status</TableCell>
+                    <TableCell sx={{...tableStyles.headerCell, cursor: 'pointer'}} onClick={() => handleSort('status')}>
+                      <Box sx={{display: 'flex', alignItems: 'center', gap: 1}}>Status {getSortIcon('status')}</Box>
+                    </TableCell>
                     <TableCell sx={tableStyles.headerCell}>Actions</TableCell>
                   </TableRow>
                 </TableHead>
@@ -294,11 +391,9 @@ const RequirementList: React.FC = () => {
                       key={requirement.requirement_id}
                       sx={tableStyles.bodyRow(index === paginatedRequirements.length - 1)}
                     >
+                      <TableCell sx={tableStyles.bodyCell}>{requirement.requirement_id}</TableCell>
                       <TableCell sx={tableStyles.bodyCell}>
                         <Stack direction="row" alignItems="center" spacing={2}>
-                          <Avatar sx={tableStyles.avatar}>
-                            {(requirement.company_name || 'C')[0].toUpperCase()}
-                          </Avatar>
                           <Typography variant="subtitle1" fontWeight={500}>
                             {requirement.company_name || 'N/A'}
                           </Typography>
@@ -384,61 +479,19 @@ const RequirementList: React.FC = () => {
           }}
         />
 
-        <Dialog 
-          open={assignOpen} 
-          onClose={() => setAssignOpen(false)} 
-          maxWidth="sm" 
-          fullWidth
-          PaperProps={{ sx: { borderRadius: 3 } }}
-        >
-          <DialogTitle sx={{ pb: 4, fontWeight: 600 }}>
-            Assign Recruiter
-          </DialogTitle>
-          <DialogContent sx={{ pt: 3 }}>
-            {users.length === 0 ? (
-              <Typography>No users available</Typography>
-            ) : (
-              <TableContainer>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Select</TableCell>
-                      <TableCell>First Name</TableCell>
-                      <TableCell>Last Name</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {users.map(user => (
-                      <TableRow key={user.username}>
-                        <TableCell>
-                          <Radio
-                            checked={assignForm.recruiter_name === user.username}
-                            onChange={() => setAssignForm({ recruiter_name: user.username })}
-                          />
-                        </TableCell>
-                        <TableCell>{user.given_name || '-'}</TableCell>
-                        <TableCell>{user.family_name || '-'}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            )}
-          </DialogContent>
-          <DialogActions sx={{ p: 3, pt: 2 }}>
-            <Button onClick={() => setAssignOpen(false)} sx={{ borderRadius: 2 }}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleAssignSave} 
-              variant="contained" 
-              disabled={assignLoading}
-              sx={{ borderRadius: 2, px: 3 }}
-            >
-              {assignLoading ? <CircularProgress size={20} /> : 'Assign'}
-            </Button>
-          </DialogActions>
-        </Dialog>
+        <AssignRecruiterDialog
+          open={assignOpen}
+          onClose={() => setAssignOpen(false)}
+          assignedUsers={assignedUsers}
+          unassignedUsers={unassignedUsers}
+          assignForm={assignForm}
+          onAssignFormChange={setAssignForm}
+          onSave={handleAssignSave}
+          loading={assignLoading}
+          unassignLoading={unassignLoading}
+          requirement={assignRequirement}
+          onUnassign={handleUnassign}
+        />
       </Card>
     </Container>
   );
