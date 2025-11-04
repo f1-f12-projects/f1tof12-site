@@ -25,11 +25,18 @@ jobs:
     - run: npm ci
     
     - run: |
-        echo "REACT_APP_BASE_URL=${{ secrets.REACT_APP_BASE_URL }}" > .env
-        echo "REACT_APP_CLOUDFRONT_SECRET=${{ secrets.REACT_APP_CLOUDFRONT_SECRET }}" >> .env
-        echo "${{ secrets.PRODUCTION_ENV }}" >> .env
+        echo "REACT_APP_BASE_URL=${{ secrets.REACT_APP_BASE_URL }}" > .env.production
+        echo "REACT_APP_CLOUDFRONT_SECRET=${{ secrets.REACT_APP_CLOUDFRONT_SECRET }}" >> .env.production
+        echo "${{ secrets.PRODUCTION_ENV }}" > .env.endpoints
     
     - run: npm run build
+    
+    - name: Debug - List files
+      run: |
+        echo "Current directory contents:"
+        ls -la
+        echo "Checking if build folder exists:"
+        ls -la build/ || echo "Build folder does not exist"
     
     - run: |
         aws s3 sync build/ s3://${{ secrets.S3_BUCKET }} --delete
