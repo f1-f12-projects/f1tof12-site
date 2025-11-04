@@ -96,7 +96,7 @@ const MegaBar: React.FC = () => {
                 </ListItem>
                 <Collapse in={reportsOpen} timeout="auto" unmountOnExit>
                   <List component="div" disablePadding>
-                    {menuItems.reports.map(({ label, path }) => (
+                    {menuItems.reports.filter(({ path }) => visibleMenuItems.includes(path)).map(({ label, path }) => (
                       <ListItem key={path} disablePadding>
                         <ListItemButton sx={{ pl: 4 }} onClick={() => handleNavigate(path)}>
                           <ListItemText primary={label} />

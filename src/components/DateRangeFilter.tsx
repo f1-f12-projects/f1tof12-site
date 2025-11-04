@@ -80,8 +80,8 @@ const DateRangeFilter: React.FC<DateRangeFilterProps> = ({ onDateRangeChange }) 
   }, [onDateRangeChange]);
 
   return (
-    <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 3 }}>
-      <FormControl sx={{ minWidth: 150 }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <FormControl fullWidth>
         <InputLabel>Date Range</InputLabel>
         <Select value={filterType} onChange={handleFilterChange} label="Date Range">
           <MenuItem value="today">Today</MenuItem>
@@ -94,25 +94,39 @@ const DateRangeFilter: React.FC<DateRangeFilterProps> = ({ onDateRangeChange }) 
       </FormControl>
       
       {filterType === 'custom' && (
-        <>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <TextField
             type="date"
-            label="From"
+            label="From Date"
             value={customFrom}
             onChange={(e) => setCustomFrom(e.target.value)}
             InputLabelProps={{ shrink: true }}
+            fullWidth
+            sx={{
+              '& .MuiInputBase-input': {
+                fontSize: '1rem',
+                padding: '12px 14px'
+              }
+            }}
           />
           <TextField
             type="date"
-            label="To"
+            label="To Date"
             value={customTo}
             onChange={(e) => setCustomTo(e.target.value)}
             InputLabelProps={{ shrink: true }}
+            fullWidth
+            sx={{
+              '& .MuiInputBase-input': {
+                fontSize: '1rem',
+                padding: '12px 14px'
+              }
+            }}
           />
-          <Button variant="contained" onClick={handleCustomApply}>
-            Apply
+          <Button variant="contained" onClick={handleCustomApply} fullWidth>
+            Apply Date Range
           </Button>
-        </>
+        </Box>
       )}
     </Box>
   );

@@ -9,6 +9,7 @@ interface ProfileDateRangeData {
   name: string;
   recruiter_name: string;
   requirement_id: number;
+  company_name: string;
 }
 
 const CACHE_KEY = 'profiles';
