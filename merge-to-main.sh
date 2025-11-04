@@ -14,4 +14,8 @@ git merge dev
 # Push merged changes to main (triggers deployment)
 git push origin main
 
+# Switch back to dev branch
+git checkout dev
+
 echo "Merge complete! Deployment will start automatically."
+echo "Switched back to dev branch."
