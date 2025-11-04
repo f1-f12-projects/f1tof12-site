@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Box, Card, CardContent, Typography, Grid, CircularProgress, Button, Autocomplete, TextField, Divider, IconButton } from '@mui/material';
+import { Box, Card, CardContent, Typography, Grid, CircularProgress, Button, Autocomplete, TextField } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { profileService } from '../../services/profileService';
 import { profileStatusService } from '../../services/profileStatusService';
-import { Profile } from '../../models/Profile';
 import DateRangeFilter, { DateRange } from '../../components/DateRangeFilter';
 
 interface GroupedData {
@@ -16,115 +15,94 @@ interface GroupedData {
 const ProfileDashboard: React.FC = () => {
   const theme = useTheme();
   const [allGroupedData, setAllGroupedData] = useState<GroupedData[]>([]);
-  const [groupedData, setGroupedData] = useState<GroupedData[]>([]);
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState<DateRange | null>(null);
   const [selectedCompanies, setSelectedCompanies] = useState<string[]>([]);
   const [selectedRecruiters, setSelectedRecruiters] = useState<string[]>([]);
   
+  const fetchData = useCallback(async () => {
+    if (!dateRange) return;
+    
+    setLoading(true);
+    try {
+      const fromDate = new Date(dateRange.from.getTime() - dateRange.from.getTimezoneOffset() * 60000);
+      const toDate = new Date(dateRange.to.getTime() - dateRange.to.getTimezoneOffset() * 60000);
+      
+      const [profilesResponse, statuses] = await Promise.all([
+        profileService.getProfilesByDateRange(
+          fromDate.toISOString().split('T')[0],
+          toDate.toISOString().split('T')[0]
+        ),
+        profileStatusService.getProfileStatuses()
+      ]);
+
+      if (profilesResponse.success && profilesResponse.data) {
+        const statusMap = statuses.reduce((map, status) => {
+          map[status.id] = `${status.stage} | ${status.status}`;
+          return map;
+        }, {} as Record<number, string>);
+
+        const groupedMap = new Map<string, { total: number; statusCounts: Record<string, number> }>();
+
+        profilesResponse.data.forEach((profile: any) => {
+          const companyKey = `${profile.company_name || 'Unknown'} - ${profile.recruiter_name || 'Unknown'}`;
+          
+          if (!groupedMap.has(companyKey)) {
+            groupedMap.set(companyKey, { total: 0, statusCounts: {} });
+          }
+
+          const groupData = groupedMap.get(companyKey)!;
+          groupData.total++;
+
+          const status = statusMap[profile.status] || 'Unknown';
+          groupData.statusCounts[status] = (groupData.statusCounts[status] || 0) + 1;
+        });
+
+        const sortedGroups = Array.from(groupedMap.entries())
+          .map(([key, data]) => ({ key, title: key, ...data }))
+          .sort((a, b) => b.total - a.total);
+
+        setAllGroupedData(sortedGroups);
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [dateRange]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
   const handleDateRangeChange = useCallback((range: DateRange) => {
     setDateRange(range);
   }, []);
 
-  const handleRefresh = useCallback(() => {
-    window.location.reload();
-  }, []);
-
-  useEffect(() => {
-    if (!dateRange) return;
-    
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const fromDate = new Date(dateRange.from.getTime() - dateRange.from.getTimezoneOffset() * 60000);
-        const toDate = new Date(dateRange.to.getTime() - dateRange.to.getTimezoneOffset() * 60000);
-        
-        const [profilesResponse, statuses] = await Promise.all([
-          profileService.getProfilesByDateRange(
-            fromDate.toISOString().split('T')[0],
-            toDate.toISOString().split('T')[0]
-          ),
-          profileStatusService.getProfileStatuses()
-        ]);
-
-        if (profilesResponse.success && profilesResponse.data) {
-          const profiles = profilesResponse.data;
-          const statusMap = statuses.reduce((map, status) => {
-            map[status.id] = `${status.stage} | ${status.status}`;
-            return map;
-          }, {} as Record<number, string>);
-
-          const groupedMap = new Map<string, { total: number; statusCounts: Record<string, number> }>();
-
-          profiles.forEach((profile: any) => {
-            const recruiterKey = profile.recruiter_name || 'Unknown';
-            const companyKey = `${profile.company_name || 'Unknown'} - ${recruiterKey}`;
-            
-            if (!groupedMap.has(companyKey)) {
-              groupedMap.set(companyKey, { total: 0, statusCounts: {} });
-            }
-
-            const groupData = groupedMap.get(companyKey)!;
-            groupData.total++;
-
-            const status = statusMap[profile.status] || 'Unknown';
-            groupData.statusCounts[status] = (groupData.statusCounts[status] || 0) + 1;
-          });
-
-          const sortedGroups = Array.from(groupedMap.entries())
-            .map(([key, data]) => ({ key, title: key, ...data }))
-            .sort((a, b) => b.total - a.total);
-
-          setAllGroupedData(sortedGroups);
-          setGroupedData(sortedGroups);
-        }
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [dateRange]);
-
-  const availableCompanies = useMemo(() => {
+  const { availableCompanies, availableRecruiters, groupedData } = useMemo(() => {
     const companies = new Set<string>();
-    allGroupedData.forEach(group => {
-      const companyName = group.title.split(' - ')[0];
-      companies.add(companyName);
-    });
-    return Array.from(companies).sort();
-  }, [allGroupedData]);
-
-  const availableRecruiters = useMemo(() => {
     const recruiters = new Set<string>();
+    
     allGroupedData.forEach(group => {
-      const recruiterName = group.title.split(' - ')[1] || 'Unknown';
+      const [companyName, recruiterName = 'Unknown'] = group.title.split(' - ');
+      companies.add(companyName);
       recruiters.add(recruiterName);
     });
-    return Array.from(recruiters).sort();
-  }, [allGroupedData]);
 
-  useEffect(() => {
     let filtered = allGroupedData;
-    
     if (selectedCompanies.length > 0) {
-      filtered = filtered.filter(group => {
-        const companyName = group.title.split(' - ')[0];
-        return selectedCompanies.includes(companyName);
-      });
+      filtered = filtered.filter(group => selectedCompanies.includes(group.title.split(' - ')[0]));
     }
-    
     if (selectedRecruiters.length > 0) {
-      filtered = filtered.filter(group => {
-        const recruiterName = group.title.split(' - ')[1] || 'Unknown';
-        return selectedRecruiters.includes(recruiterName);
-      });
+      filtered = filtered.filter(group => selectedRecruiters.includes(group.title.split(' - ')[1] || 'Unknown'));
     }
-    
-    setGroupedData(filtered);
-  }, [selectedCompanies, selectedRecruiters, allGroupedData]);
+
+    return {
+      availableCompanies: Array.from(companies).sort(),
+      availableRecruiters: Array.from(recruiters).sort(),
+      groupedData: filtered
+    };
+  }, [allGroupedData, selectedCompanies, selectedRecruiters]);
 
   return (
     <Box sx={{ p: 3 }}>
@@ -144,7 +122,7 @@ const ProfileDashboard: React.FC = () => {
           </Typography>
           <Button 
             variant="contained"
-            onClick={handleRefresh}
+            onClick={fetchData}
             disabled={loading}
             sx={{ 
               background: `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
