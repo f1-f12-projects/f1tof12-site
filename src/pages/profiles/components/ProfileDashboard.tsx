@@ -307,6 +307,9 @@ const ProfileDashboard: React.FC<ProfileDashboardProps> = ({ selectedRequirement
           onStatusUpdate={() => {
             if (selectedRequirement) {
               fetchProfileCounts(selectedRequirement.requirement_id);
+              if (selectedStage) {
+                loadProfilesByStage(selectedRequirement.requirement_id, selectedStage);
+              }
             }
           }}
         />

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Box, Typography, Grid, Card, Chip, IconButton, Snackbar, TextField, Select, MenuItem, FormControl, InputLabel, CircularProgress } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Box, Typography, Grid, Card, Chip, IconButton, Snackbar, TextField, Select, MenuItem, FormControl, InputLabel, CircularProgress, Alert } from '@mui/material';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { Profile } from '../../../models/Profile';
 import { profileStatusService } from '../../../services/profileStatusService';
@@ -9,9 +9,10 @@ import { formatINR } from '../../../utils/currencyUtils';
 interface ProfileContentProps {
   profile: Profile;
   copyToClipboard: (text: string, label: string) => void;
+  currentStatus: string;
 }
 
-const ProfileContent: React.FC<ProfileContentProps> = React.memo(({ profile, copyToClipboard }) => {
+const ProfileContent: React.FC<ProfileContentProps> = React.memo(({ profile, copyToClipboard, currentStatus }) => {
   const sections = useMemo(() => [
     {
       title: '📞 Contact Information',
@@ -67,7 +68,8 @@ const ProfileContent: React.FC<ProfileContentProps> = React.memo(({ profile, cop
             </Typography>
             {section.items.map((item, itemIndex) => (
               <Typography key={itemIndex} sx={{ mb: itemIndex < section.items.length - 1 ? 1 : 0, color: (theme) => theme.palette.text.primary, display: 'flex', alignItems: 'center' }}>
-                <strong>{item.label}</strong> {item.value}
+                <span><strong>{item.label}</strong></span>
+                <span style={{ marginLeft: '4px' }}>{item.value}</span>
                 {(item.label === 'Email: ' || item.label === 'Phone: ') && (
                   <IconButton size="small" onClick={() => copyToClipboard(item.value, item.label)} sx={{ ml: 0.5, p: 0.5 }}>
                     <ContentCopyIcon fontSize="small" />
@@ -78,6 +80,42 @@ const ProfileContent: React.FC<ProfileContentProps> = React.memo(({ profile, cop
           </Card>
         </Grid>
       ))}
+      
+      {(currentStatus.toLowerCase().includes('offer accepted') || currentStatus.toLowerCase().includes('joined')) && (
+        <Grid item xs={12} md={6}>
+          <Card sx={{ 
+            p: 3, 
+            height: 180, 
+            background: (theme) => theme.palette.mode === 'dark' ? 'linear-gradient(135deg, #424242 0%, #616161 100%)' : 'linear-gradient(135deg, #f5f5f5 0%, #e8eaf6 100%)', 
+            borderRadius: 4,
+            boxShadow: 'none',
+            border: (theme) => `1px solid ${theme.palette.mode === 'dark' ? '#555' : '#e0e0e0'}`,
+            '&:hover': { 
+              background: (theme) => theme.palette.mode === 'dark' ? 'linear-gradient(135deg, #616161 0%, #757575 100%)' : 'linear-gradient(135deg, #e8eaf6 0%, #c5cae9 100%)',
+              borderColor: 'primary.main'
+            },
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            mt: 2
+          }}>
+            <Typography variant="h6" sx={{ fontWeight: 500, mb: 2, color: 'primary.main' }}>
+              🎉 Offer & Joining Details
+            </Typography>
+            {profile.accepted_offer && (
+              <Typography sx={{ mb: 1, color: (theme) => theme.palette.text.primary, display: 'flex', alignItems: 'center' }}>
+                <span><strong>Accepted Offer:</strong></span>
+                <span style={{ marginLeft: '4px' }}>{formatINR(profile.accepted_offer)}</span>
+              </Typography>
+            )}
+            {profile.joining_date && (
+              <Typography sx={{ mb: 1, color: (theme) => theme.palette.text.primary, display: 'flex', alignItems: 'center' }}>
+                <span><strong>Joining Date:</strong></span>
+                <span style={{ marginLeft: '4px' }}>{profile.joining_date}</span>
+              </Typography>
+            )}
+
+          </Card>
+        </Grid>
+      )}
       
       <Grid item xs={12}>
         <Card sx={{ 
@@ -147,10 +185,14 @@ const ProfileDetailsDialog: React.FC<ProfileDetailsDialogProps> = ({ open, onClo
     copyMessage: '',
     showCopySnackbar: false,
     remarks: '',
+    acceptedOffer: '',
+    joiningDate: '',
     isUpdating: false,
     currentStatusId: null as number | null,
     statusText: '',
-    stageText: ''
+    stageText: '',
+    showErrorAlert: false,
+    errorMessage: ''
   });
 
   useEffect(() => {
@@ -221,8 +263,6 @@ const ProfileDetailsDialog: React.FC<ProfileDetailsDialogProps> = ({ open, onClo
     loadData();
   }, [profileData]);
 
-
-  
   if (!profileData) return null;
 
   const handleStageChange = useCallback(async (newStage: string) => {
@@ -269,9 +309,25 @@ const ProfileDetailsDialog: React.FC<ProfileDetailsDialogProps> = ({ open, onClo
   }, [state.stageOptions, state.statusOptions, state.selectedStage]);
 
   const hasChanges = useMemo(() => 
-    state.currentStatusId !== profileData?.status_id,
-    [state.currentStatusId, profileData?.status_id]
+    state.selectedStage && state.selectedStatus && state.currentStatusId !== profileData?.status_id,
+    [state.selectedStage, state.selectedStatus, state.currentStatusId, profileData?.status_id]
   );
+
+  const isConfirmDisabled = useMemo(() => {
+    if (state.isUpdating) return true;
+    
+    if (!state.selectedStatus) return false;
+    
+    const currentStatus = state.statusOptions[parseInt(state.selectedStatus) - 1]?.toLowerCase();
+    const requiresFields = currentStatus?.includes('offer accepted') || currentStatus?.includes('joined');
+    
+    if (!requiresFields) return false;
+    
+    const hasOffer = state.acceptedOffer || profileData.profile?.accepted_offer;
+    const hasJoiningDate = state.joiningDate || profileData.profile?.joining_date;
+    
+    return !hasOffer || !hasJoiningDate;
+  }, [state.isUpdating, state.selectedStatus, state.statusOptions, state.acceptedOffer, state.joiningDate, profileData.profile?.accepted_offer, profileData.profile?.joining_date]);
 
   const handleUpdateClick = useCallback(() => {
     if (hasChanges) {
@@ -293,15 +349,42 @@ const ProfileDetailsDialog: React.FC<ProfileDetailsDialogProps> = ({ open, onClo
       }
       
       await profileService.updateStatus(profileData!.id, statusId, state.remarks);
+      
+      let hasError = false;
+      
+      // Update accepted offer and joining date if status is "Offer accepted" and values are provided
+      if (statusName.toLowerCase().includes('offer accepted') && profileData?.profile_id) {
+        const updateData: any = {};
+        if (state.acceptedOffer) {
+          updateData.accepted_offer = parseFloat(state.acceptedOffer);
+        }
+        if (state.joiningDate) {
+          updateData.joining_date = state.joiningDate;
+        }
+        if (Object.keys(updateData).length > 0) {
+          try {
+            await profileService.updateProfile(profileData.profile_id, updateData);
+          } catch (profileError) {
+            console.error('Error updating offer details:', profileError);
+            setState(prev => ({ ...prev, showErrorAlert: true, errorMessage: 'Failed to update offer details, but status was updated successfully.' }));
+            hasError = true;
+          }
+        }
+      }
+      
       onStatusUpdate?.(profileData!.id, statusId);
       
-      // Close dialog after successful update
-      onClose();
+      // Close dialog after successful update (only if no errors)
+      if (!hasError) {
+        onClose();
+      } else {
+        setState(prev => ({ ...prev, isUpdating: false }));
+      }
     } catch (error) {
       console.error('Error updating status:', error);
       setState(prev => ({ ...prev, isUpdating: false }));
     }
-  }, [profileData, state.selectedStatus, state.selectedStage, state.remarks, onStatusUpdate, onClose]);
+  }, [profileData, state.selectedStatus, state.selectedStage, state.remarks, state.acceptedOffer, state.joiningDate, onStatusUpdate, onClose]);
 
   const cancelStatusUpdate = useCallback(() => {
     setState(prev => ({
@@ -367,7 +450,7 @@ const ProfileDetailsDialog: React.FC<ProfileDetailsDialogProps> = ({ open, onClo
       
       <DialogContent sx={{ p: 3 }}>
         {profileData.profile ? (
-          <ProfileContent profile={profileData.profile} copyToClipboard={copyToClipboard} />
+          <ProfileContent profile={profileData.profile} copyToClipboard={copyToClipboard} currentStatus={state.statusText} />
         ) : (
           <Card sx={{ p: 4, textAlign: 'center', background: (theme) => theme.palette.mode === 'dark' ? 'linear-gradient(135deg, #2c2c2c 0%, #3c3c3c 100%)' : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)' }}>
             <Typography variant="h6" color="text.secondary">
@@ -437,6 +520,30 @@ const ProfileDetailsDialog: React.FC<ProfileDetailsDialogProps> = ({ open, onClo
         <DialogTitle>Confirm Status Change</DialogTitle>
         <DialogContent>
           <Typography sx={{ mb: 2 }}>Are you sure you want to update the status?</Typography>
+          {state.selectedStatus && (state.statusOptions[parseInt(state.selectedStatus) - 1]?.toLowerCase().includes('offer accepted') || state.statusOptions[parseInt(state.selectedStatus) - 1]?.toLowerCase().includes('joined')) && (
+            <>
+              <TextField
+                label="Accepted Offer Amount"
+                type="number"
+                fullWidth
+                required
+                value={state.acceptedOffer || (profileData.profile?.accepted_offer?.toString() || '')}
+                onChange={(e) => setState(prev => ({ ...prev, acceptedOffer: e.target.value }))}
+                placeholder="Enter accepted offer amount"
+                sx={{ mb: 2 }}
+              />
+              <TextField
+                label="Joining Date"
+                type="date"
+                fullWidth
+                required
+                value={state.joiningDate || profileData.profile?.joining_date || ''}
+                onChange={(e) => setState(prev => ({ ...prev, joiningDate: e.target.value }))}
+                InputLabelProps={{ shrink: true }}
+                sx={{ mb: 2 }}
+              />
+            </>
+          )}
           <TextField
             label="Remarks"
             multiline
@@ -449,7 +556,11 @@ const ProfileDetailsDialog: React.FC<ProfileDetailsDialogProps> = ({ open, onClo
         </DialogContent>
         <DialogActions>
           <Button onClick={cancelStatusUpdate} disabled={state.isUpdating}>Cancel</Button>
-          <Button onClick={confirmStatusUpdate} variant="contained" disabled={state.isUpdating}>
+          <Button 
+            onClick={confirmStatusUpdate} 
+            variant="contained" 
+            disabled={isConfirmDisabled}
+          >
             {state.isUpdating ? <CircularProgress size={20} /> : 'Confirm'}
           </Button>
         </DialogActions>
@@ -461,6 +572,16 @@ const ProfileDetailsDialog: React.FC<ProfileDetailsDialogProps> = ({ open, onClo
         onClose={() => setState(prev => ({ ...prev, showCopySnackbar: false }))}
         message={state.copyMessage}
       />
+      
+      <Snackbar
+        open={state.showErrorAlert}
+        autoHideDuration={5000}
+        onClose={() => setState(prev => ({ ...prev, showErrorAlert: false }))}
+      >
+        <Alert severity="warning" onClose={() => setState(prev => ({ ...prev, showErrorAlert: false }))}>
+          {state.errorMessage}
+        </Alert>
+      </Snackbar>
     </Dialog>
   );
 };
