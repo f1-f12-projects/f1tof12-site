@@ -45,7 +45,7 @@ const ProfileDashboard: React.FC = () => {
         const groupedMap = new Map<string, { total: number; statusCounts: Record<string, number> }>();
 
         profilesResponse.data.forEach((profile: any) => {
-          const companyKey = `${profile.company_name || 'Unknown'} - ${profile.recruiter_name || 'Unknown'}`;
+          const companyKey = `${profile.company_name || 'No Company'} - ${profile.recruiter_name || 'Unknown'}`;
           
           if (!groupedMap.has(companyKey)) {
             groupedMap.set(companyKey, { total: 0, statusCounts: {} });
