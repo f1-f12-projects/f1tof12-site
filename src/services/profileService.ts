@@ -3,6 +3,14 @@ import { ApiResponse } from '../models/ApiResponse';
 import { apiService } from './apiService';
 import { cacheService } from './cacheService';
 
+interface ProfileDateRangeData {
+  profile_id: number;
+  status: number;
+  name: string;
+  recruiter_name: string;
+  requirement_id: number;
+}
+
 const CACHE_KEY = 'profiles';
 
 export const profileService = {
@@ -19,6 +27,11 @@ export const profileService = {
   async getProfile(id: number): Promise<ApiResponse<Profile>> {
     const endpoint = process.env.REACT_APP_PROFILE_FETCH_ENDPOINT!.replace('{profile_id}', id.toString());
     return await apiService.get<ApiResponse<Profile>>(endpoint);
+  },
+
+  async getProfilesByDateRange(fromDate: string, toDate: string): Promise<ApiResponse<ProfileDateRangeData[]>> {
+    const params = new URLSearchParams({ start_date: fromDate, end_date: toDate });
+    return await apiService.get<ApiResponse<ProfileDateRangeData[]>>(`${process.env.REACT_APP_PROFILE_LIST_DATE_RANGE_ENDPOING!}?${params}`);
   },
 
   async createProfile(profileData: Omit<Profile, 'id' | 'created_date' | 'updated_date'>): Promise<ApiResponse<Profile>> {
