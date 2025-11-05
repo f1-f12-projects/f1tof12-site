@@ -31,8 +31,8 @@ export const profileService = {
   },
 
   async getProfilesByDateRange(fromDate: string, toDate: string): Promise<ApiResponse<ProfileDateRangeData[]>> {
-    const queryString = `start_date=${encodeURIComponent(fromDate)}&amp;end_date=${encodeURIComponent(toDate)}`;
-    return await apiService.get<ApiResponse<ProfileDateRangeData[]>>(`${process.env.REACT_APP_PROFILE_LIST_DATE_RANGE_ENDPOING!}?${queryString}`);
+    const body = { start_date: fromDate, end_date: toDate };
+    return await apiService.post<ApiResponse<ProfileDateRangeData[]>>(process.env.REACT_APP_PROFILE_LIST_DATE_RANGE_ENDPOING!, body);
   },
 
   async createProfile(profileData: Omit<Profile, 'id' | 'created_date' | 'updated_date'>): Promise<ApiResponse<Profile>> {
