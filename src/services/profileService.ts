@@ -31,7 +31,7 @@ export const profileService = {
   },
 
   async getProfilesByDateRange(fromDate: string, toDate: string): Promise<ApiResponse<ProfileDateRangeData[]>> {
-    const queryString = `start_date=${encodeURIComponent(fromDate)}&end_date=${encodeURIComponent(toDate)}`;
+    const queryString = `start_date=${encodeURIComponent(fromDate)}&amp;end_date=${encodeURIComponent(toDate)}`;
     return await apiService.get<ApiResponse<ProfileDateRangeData[]>>(`${process.env.REACT_APP_PROFILE_LIST_DATE_RANGE_ENDPOING!}?${queryString}`);
   },
 
