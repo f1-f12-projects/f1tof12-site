@@ -23,6 +23,8 @@ import RequirementList from './pages/requirements/RequirementList';
 import AddRequirement from './pages/requirements/AddRequirement';
 import ProcessProfiles from './pages/profiles/ProcessProfiles';
 import ProfileDashboard from './pages/reports/ProfileDashboard';
+import Profile from './pages/Profile';
+import Leaves from './pages/Leaves';
 
 const HomePage: React.FC = () => (
   <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -39,6 +41,10 @@ const routes = {
   // Generic Routes
   '/': HomePage,
   '/login': Login,
+
+  // User Routes
+  '/profile': Profile,
+  '/leaves': Leaves,
 
   // Company Routes
   '/company/register': RegisterCompany,
