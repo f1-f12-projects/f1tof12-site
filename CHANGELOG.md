@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.0.0] - 2025-01-27
+
+### Added
+- Leave Management system
+
 ## [3.1.0] - 2025-01-27
 
 ### Added
