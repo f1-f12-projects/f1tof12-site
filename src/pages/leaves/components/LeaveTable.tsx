@@ -6,11 +6,10 @@ import { formatDateOnly } from '../../../utils/dateUtils';
 
 interface LeaveTableProps {
   isHR: boolean;
-  onLeaveAction: (leaveId: number, action: 'approve' | 'reject') => void;
   leaves?: Leave[];
 }
 
-const LeaveTable: React.FC<LeaveTableProps> = ({ isHR, onLeaveAction, leaves = [] }) => {
+const LeaveTable: React.FC<LeaveTableProps> = ({ isHR, leaves = [] }) => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'approved': return 'success';
@@ -22,24 +21,25 @@ const LeaveTable: React.FC<LeaveTableProps> = ({ isHR, onLeaveAction, leaves = [
   const displayLeaves = isHR ? leaves : leaves.filter(leave => !isHR);
 
   return (
-    <TableContainer component={Paper} variant="outlined">
+    <TableContainer component={Paper} sx={{ mt: 2, borderRadius: 2, elevation: 2 }}>
       <Table>
         <TableHead>
-          <TableRow>
-            {isHR && <TableCell>Employee</TableCell>}
-            <TableCell>Leave Type</TableCell>
-            <TableCell>Start Date</TableCell>
-            <TableCell>End Date</TableCell>
-            <TableCell>Reason</TableCell>
-            <TableCell>Status</TableCell>
-            <TableCell>Applied Date</TableCell>
-            {isHR && <TableCell>Actions</TableCell>}
+          <TableRow sx={{ bgcolor: 'primary.main' }}>
+            {isHR && <TableCell sx={{ color: 'primary.contrastText', fontWeight: 600 }}>Employee</TableCell>}
+            <TableCell sx={{ color: 'primary.contrastText', fontWeight: 600 }}>Leave Type</TableCell>
+            <TableCell sx={{ color: 'primary.contrastText', fontWeight: 600 }}>Start Date</TableCell>
+            <TableCell sx={{ color: 'primary.contrastText', fontWeight: 600 }}>End Date</TableCell>
+            <TableCell sx={{ color: 'primary.contrastText', fontWeight: 600 }}>Days</TableCell>
+            <TableCell sx={{ color: 'primary.contrastText', fontWeight: 600 }}>Reason</TableCell>
+            <TableCell sx={{ color: 'primary.contrastText', fontWeight: 600 }}>Status</TableCell>
+            <TableCell sx={{ color: 'primary.contrastText', fontWeight: 600 }}>Applied Date</TableCell>
+            {isHR && <TableCell sx={{ color: 'primary.contrastText', fontWeight: 600 }}>Actions</TableCell>}
           </TableRow>
         </TableHead>
         <TableBody>
           {displayLeaves.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={isHR ? 8 : 6} sx={{ textAlign: 'center', py: 6 }}>
+              <TableCell colSpan={isHR ? 9 : 7} sx={{ textAlign: 'center', py: 6 }}>
                 <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                   <EventBusy sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
                   <Typography variant="h6" color="text.secondary" gutterBottom>
@@ -52,47 +52,30 @@ const LeaveTable: React.FC<LeaveTableProps> = ({ isHR, onLeaveAction, leaves = [
               </TableCell>
             </TableRow>
           ) : (
-            displayLeaves.map((leave) => (
-              <TableRow key={leave.id}>
-                {isHR && <TableCell>Employee</TableCell>}
-                <TableCell sx={{ textTransform: 'capitalize' }}>{leave.leave_type}</TableCell>
+            displayLeaves.map((leave, index) => (
+              <TableRow 
+                key={leave.id}
+                sx={{
+                  bgcolor: index % 2 === 0 ? 'background.default' : 'background.paper',
+                  '&:hover': { bgcolor: 'action.hover' },
+                  transition: 'background-color 0.2s ease'
+                }}
+              >
+                {isHR && <TableCell sx={{ fontWeight: 500 }}>Employee</TableCell>}
+                <TableCell sx={{ textTransform: 'capitalize', fontWeight: 500 }}>{leave.leave_type}</TableCell>
                 <TableCell>{formatDateOnly(leave.start_date)}</TableCell>
                 <TableCell>{formatDateOnly(leave.end_date)}</TableCell>
+                <TableCell sx={{ fontWeight: 500 }}>{leave.days}</TableCell>
                 <TableCell>{leave.reason}</TableCell>
                 <TableCell>
                   <Chip 
-                    label={leave.status.toUpperCase()} 
+                    label={leave.status} 
                     color={getStatusColor(leave.status) as any}
                     size="small"
+                    sx={{ textTransform: 'capitalize' }}
                   />
                 </TableCell>
                 <TableCell>{formatDateOnly(leave.created_date)}</TableCell>
-                {isHR && (
-                  <TableCell>
-                    {leave.status === 'pending' && (
-                      <Stack direction="row" spacing={1}>
-                        <Button
-                          size="small"
-                          variant="contained"
-                          color="success"
-                          startIcon={<Check />}
-                          onClick={() => onLeaveAction(leave.id, 'approve')}
-                        >
-                          Approve
-                        </Button>
-                        <Button
-                          size="small"
-                          variant="contained"
-                          color="error"
-                          startIcon={<Close />}
-                          onClick={() => onLeaveAction(leave.id, 'reject')}
-                        >
-                          Reject
-                        </Button>
-                      </Stack>
-                    )}
-                  </TableCell>
-                )}
               </TableRow>
             ))
           )}

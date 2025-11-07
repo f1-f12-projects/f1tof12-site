@@ -4,6 +4,8 @@ import { ApiResponse } from '../models/ApiResponse';
 export interface Leave {
   id: number;
   username?: string;
+  given_name?: string | null;
+  family_name?: string | null;
   leave_type: string;
   start_date: string;
   end_date: string;
@@ -77,5 +79,13 @@ export const leaveService = {
 
   getAllLeaves: async (): Promise<ApiResponse<Leave[]>> => {
     return apiService.get(process.env.REACT_APP_ALL_LEAVES_ENDPOINT!);
+  },
+
+  approveLeave: async (leaveId: number, status: 'approved' | 'rejected', comments?: string): Promise<ApiResponse<any>> => {
+    const endpoint = process.env.REACT_APP_APPROVE_LEAVE_ENDPOINT!.replace('{leave_id}', leaveId.toString());
+    return apiService.put(endpoint, {
+      status,
+      comments: comments || 'NA'
+    });
   }
 };
