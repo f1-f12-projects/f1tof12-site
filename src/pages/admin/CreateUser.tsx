@@ -190,6 +190,7 @@ const CreateUser: React.FC = () => {
                 <MenuItem value="recruiter">Recruiter</MenuItem>
                 <MenuItem value="lead">Lead</MenuItem>
                 <MenuItem value="finance">Finance</MenuItem>
+                <MenuItem value="hr">HR</MenuItem>
               </Select>
               {errors.role && (
                 <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.75 }}>

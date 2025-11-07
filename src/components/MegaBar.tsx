@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, List, ListItem, ListItemButton, ListItemText, Collapse, Drawer, IconButton } from '@mui/material';
-import { ExpandLess, ExpandMore, Business, BusinessCenter, Person, Assessment, AccountBalance, AdminPanelSettings, Menu } from '@mui/icons-material';
+import { ExpandLess, ExpandMore, BusinessCenter, Person, Assessment, AccountBalance, AdminPanelSettings, Menu, EventNote } from '@mui/icons-material';
 import { useAuth } from '../context/AuthContext';
 import { roleHelper } from '../utils/roleHelper';
 
@@ -44,11 +44,10 @@ const MegaBar: React.FC = () => {
       { label: 'Candidate', path: '/profiles', icon: <Person /> },
       { label: 'Reports', path: '/reports', icon: <Assessment /> },
       { label: 'Finance', path: '/company/invoices', icon: <AccountBalance /> },
+      { label: 'Leave Management', path: '/leaves', icon: <EventNote /> },
       { label: 'Admin', path: '/admin/users', icon: <AccountBalance /> }
     ]
   }), []);
-
-
 
   return (
     <>

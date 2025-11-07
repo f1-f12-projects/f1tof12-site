@@ -8,12 +8,27 @@ import { cacheService } from './cacheService';
 const CACHE_KEY = 'requirements';
 const STATUSES_CACHE_KEY = 'requirement_statuses';
 
+// Configure cache without TTL - cache never expires
+cacheService.configure({
+  [CACHE_KEY]: { persistent: false }, // memory only, no expiration
+  [STATUSES_CACHE_KEY]: { persistent: true } // persistent, no expiration
+});
+
+const getUserCacheKey = (baseKey: string) => {
+  const user = localStorage.getItem('user') || 'anonymous';
+  return `${baseKey}_${user}`;
+};
+
 export const requirementService = {
   async getRequirements(): Promise<ApiResponse<Requirement[]>> {
+    const userCacheKey = getUserCacheKey(CACHE_KEY);
+    const cached = cacheService.get(userCacheKey);
+    if (cached) return cached as ApiResponse<Requirement[]>;
+    
     const response: ApiResponse<Requirement[]> = await apiService.get<ApiResponse<Requirement[]>>(process.env.REACT_APP_REQUIREMENTS_LIST_ENDPOINT!);
     
     if (response.success) {
-      cacheService.set(CACHE_KEY, response);
+      cacheService.set(userCacheKey, response);
     }
     
     return response;
@@ -52,7 +67,7 @@ export const requirementService = {
     const response = await apiService.put<ApiResponse>(endpoint, updateData);
     
     if (response.success) {
-      cacheService.delete(CACHE_KEY);
+      cacheService.delete(getUserCacheKey(CACHE_KEY));
     }
     
     return response;
@@ -65,7 +80,7 @@ export const requirementService = {
     const response = await apiService.put<ApiResponse>(endpoint, payload);
     
     if (response.success) {
-      cacheService.delete(CACHE_KEY);
+      cacheService.delete(getUserCacheKey(CACHE_KEY));
     }
     
     return response;
@@ -76,7 +91,7 @@ export const requirementService = {
     const response = await apiService.put<ApiResponse>(endpoint, { recruiter_name });
     
     if (response.success) {
-      cacheService.delete(CACHE_KEY);
+      cacheService.delete(getUserCacheKey(CACHE_KEY));
     }
     
     return response;
@@ -86,7 +101,7 @@ export const requirementService = {
     const response = await apiService.post<ApiResponse<Requirement>>(process.env.REACT_APP_REQUIREMENTS_ADD_ENDPOINT!, requirementData);
     
     if (response.success) {
-      cacheService.delete(CACHE_KEY);
+      cacheService.delete(getUserCacheKey(CACHE_KEY));
     }
     
     return response;
@@ -128,6 +143,12 @@ export const requirementService = {
   },
 
   clearCache(): void {
-    cacheService.delete(CACHE_KEY);
+    cacheService.delete(getUserCacheKey(CACHE_KEY));
   }
+};
+
+// Clear user cache on logout
+export const clearUserCache = () => {
+  const user = localStorage.getItem('user') || 'anonymous';
+  cacheService.clearByPattern(user);
 };
