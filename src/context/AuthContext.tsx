@@ -14,7 +14,7 @@ interface AuthContextType {
   authToken: string | null;
   userRole: UserRole | null;
   userData: UserData | null;
-  login: (username: string, token: string, role: UserRole, userData?: UserData, refreshToken?: string, cacheData?: Record<string, any>) => void;
+  login: (username: string, token: string, role: UserRole, userData?: UserData, expiresIn?: number, expiresAt?: string, refreshToken?: string, cacheData?: Record<string, any>) => void;
   logout: () => void;
   isAuthenticated: boolean;
   checkAuthentication: () => Promise<boolean>;
@@ -35,10 +35,10 @@ const isTokenExpired = (token: string): boolean => {
   }
 };
 
-const refreshTokenAPI = async (refreshToken: string): Promise<{ access_token: string; refresh_token?: string } | null> => {
+const refreshTokenAPI = async (refreshToken: string): Promise<{ access_token: string; expires_in?: number; expires_at?: string; refresh_token?: string } | null> => {
   try {
     console.log('Attempting to refresh token...');
-    const response = await fetch(process.env.REACT_APP_REFRESH_TOKEN_ENDPOINT || '/auth/refresh', {
+    const response = await fetch(process.env.REACT_APP_REFRESH_TOKEN_ENDPOINT!, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refresh_token: refreshToken })
@@ -65,17 +65,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [userData, setUserData] = useState<UserData | null>(null);
   const [refreshToken, setRefreshToken] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [expiresIn, setExpiresIn] = useState<number | null>(null);
+  const [expiresAt, setExpiresAt] = useState<string | null>(null);
+  const [refreshTimer, setRefreshTimer] = useState<NodeJS.Timeout | null>(null);
 
-  const login = (username: string, token: string, role: UserRole, userData?: UserData, refreshToken?: string, cacheData?: Record<string, any>) => {
+  const login = (username: string, token: string, role: UserRole, userData?: UserData, expiresIn?: number, expiresAt?: string, refreshToken?: string, cacheData?: Record<string, any>) => {
     setUsername(username);
     setAuthToken(token);
     setUserRole(role);
     setUserData(userData || null);
+    setExpiresIn(expiresIn || null);
+    setExpiresAt(expiresAt || null);
     setRefreshToken(refreshToken || null);
     localStorage.setItem('authToken', token);
     localStorage.setItem('username', username);
     localStorage.setItem('userRole', role);
     if (userData) localStorage.setItem('userData', JSON.stringify(userData));
+    if (expiresIn) localStorage.setItem('expiresIn', expiresIn.toString());
+    if (expiresAt) localStorage.setItem('expiresAt', expiresAt);
     if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
     
     if (cacheData) {
@@ -83,6 +90,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         cacheService.set(key, data);
       });
     }
+    
+    setupRefreshTimer(expiresAt);
   };
 
   const logout = () => {
@@ -91,12 +100,36 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setUserRole(null);
     setUserData(null);
     setRefreshToken(null);
+    setExpiresIn(null);
+    setExpiresAt(null);
+    if (refreshTimer) clearTimeout(refreshTimer);
+    setRefreshTimer(null);
     localStorage.removeItem('authToken');
     localStorage.removeItem('username');
     localStorage.removeItem('userRole');
     localStorage.removeItem('userData');
     localStorage.removeItem('refreshToken');
+    localStorage.removeItem('expiresIn');
+    localStorage.removeItem('expiresAt');
     cacheService.clear();
+  };
+
+  const setupRefreshTimer = (expiresAt?: string) => {
+    if (refreshTimer) clearTimeout(refreshTimer);
+    
+    if (!expiresAt) return;
+    
+    const expiryTime = new Date(expiresAt).getTime();
+    const currentTime = Date.now();
+    const timeUntilExpiry = expiryTime - currentTime;
+    const refreshTime = Math.max(timeUntilExpiry - 60000, 5000); // Refresh 1 minute before expiry, minimum 5 seconds
+    
+    if (refreshTime > 0) {
+      const timer = setTimeout(() => {
+        refreshAccessToken();
+      }, refreshTime);
+      setRefreshTimer(timer);
+    }
   };
 
   const refreshAccessToken = async (): Promise<boolean> => {
@@ -115,6 +148,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       console.log('Access token refreshed successfully');
       setAuthToken(result.access_token);
       localStorage.setItem('authToken', result.access_token);
+      if (result.expires_in) {
+        setExpiresIn(result.expires_in);
+        localStorage.setItem('expiresIn', result.expires_in.toString());
+      }
+      if (result.expires_at) {
+        setExpiresAt(result.expires_at);
+        localStorage.setItem('expiresAt', result.expires_at);
+        setupRefreshTimer(result.expires_at);
+      }
       if (result.refresh_token) {
         setRefreshToken(result.refresh_token);
         localStorage.setItem('refreshToken', result.refresh_token);
@@ -141,6 +183,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const storedUserRole = localStorage.getItem('userRole') as UserRole;
     const storedUserData = localStorage.getItem('userData');
     const storedRefreshToken = localStorage.getItem('refreshToken');
+    const storedExpiresIn = localStorage.getItem('expiresIn');
+    const storedExpiresAt = localStorage.getItem('expiresAt');
     
     if (token && storedUsername) {
       if (isTokenExpired(token)) {
@@ -152,7 +196,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               setUserRole(storedUserRole);
               setUserData(storedUserData ? JSON.parse(storedUserData) : null);
               setRefreshToken(storedRefreshToken);
+              setExpiresIn(result.expires_in || null);
+              setExpiresAt(result.expires_at || null);
               localStorage.setItem('authToken', result.access_token);
+              if (result.expires_in) localStorage.setItem('expiresIn', result.expires_in.toString());
+              if (result.expires_at) localStorage.setItem('expiresAt', result.expires_at);
+              setupRefreshTimer(result.expires_at);
             } else {
               logout();
             }
@@ -166,14 +215,28 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setUserRole(storedUserRole);
         setUserData(storedUserData ? JSON.parse(storedUserData) : null);
         setRefreshToken(storedRefreshToken);
+        setExpiresIn(storedExpiresIn ? parseInt(storedExpiresIn) : null);
+        setExpiresAt(storedExpiresAt);
+        setupRefreshTimer(storedExpiresAt || undefined);
       }
     }
+    
+    return () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+    };
   }, []);
 
   const checkAuthentication = async (): Promise<boolean> => {
     if (!username || !authToken) return false;
     
-    if (isTokenExpired(authToken)) {
+    if (expiresAt) {
+      const expiryTime = new Date(expiresAt).getTime();
+      const currentTime = Date.now();
+      if (currentTime >= expiryTime) {
+        const refreshed = await refreshAccessToken();
+        return refreshed;
+      }
+    } else if (isTokenExpired(authToken)) {
       const refreshed = await refreshAccessToken();
       return refreshed;
     }
