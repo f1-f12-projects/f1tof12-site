@@ -117,18 +117,37 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const setupRefreshTimer = (expiresAt?: string) => {
     if (refreshTimer) clearTimeout(refreshTimer);
     
-    if (!expiresAt) return;
+    if (!expiresAt) {
+      console.log('No expiresAt provided, skipping timer setup');
+      return;
+    }
     
     const expiryTime = new Date(expiresAt).getTime();
     const currentTime = Date.now();
     const timeUntilExpiry = expiryTime - currentTime;
     const refreshTime = Math.max(timeUntilExpiry - 60000, 5000); // Refresh 1 minute before expiry, minimum 5 seconds
     
+    console.log('Setting up refresh timer:', {
+      expiresAt,
+      expiryTime: new Date(expiryTime).toISOString(),
+      currentTime: new Date(currentTime).toISOString(),
+      localExpiryTime: new Date(expiryTime).toLocaleString(),
+      localCurrentTime: new Date(currentTime).toLocaleString(),
+      timeUntilExpiry: Math.round(timeUntilExpiry / 1000) + 's',
+      refreshTime: Math.round(refreshTime / 1000) + 's',
+      timezoneOffset: new Date().getTimezoneOffset() + ' minutes',
+      isExpired: timeUntilExpiry <= 0
+    });
+    
     if (refreshTime > 0) {
       const timer = setTimeout(() => {
+        console.log('Timer triggered, calling refreshAccessToken');
         refreshAccessToken();
       }, refreshTime);
       setRefreshTimer(timer);
+      console.log('Timer set successfully');
+    } else {
+      console.log('Refresh time is not positive, timer not set');
     }
   };
 
@@ -195,12 +214,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               setUsername(storedUsername);
               setUserRole(storedUserRole);
               setUserData(storedUserData ? JSON.parse(storedUserData) : null);
-              setRefreshToken(storedRefreshToken);
+              setRefreshToken(result.refresh_token || storedRefreshToken);
               setExpiresIn(result.expires_in || null);
               setExpiresAt(result.expires_at || null);
               localStorage.setItem('authToken', result.access_token);
               if (result.expires_in) localStorage.setItem('expiresIn', result.expires_in.toString());
               if (result.expires_at) localStorage.setItem('expiresAt', result.expires_at);
+              if (result.refresh_token) localStorage.setItem('refreshToken', result.refresh_token);
               setupRefreshTimer(result.expires_at);
             } else {
               logout();
