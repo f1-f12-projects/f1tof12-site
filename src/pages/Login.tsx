@@ -79,7 +79,7 @@ const Login: React.FC = () => {
         (data: any) => {
           if (!isMounted.current) return;
           if (data.access_token) {
-            login(formData.username, data.access_token, data.role, data.userData, data.expires_in, data.expires_at);
+            login(formData.username, data.access_token, data.role, data.userData, data.expires_in, data.expires_at, data.refresh_token);
             navigate(roleHelper.getDefaultRoute(data.role));
           } else {
             setErrors({ username: '', password: 'Invalid credentials' });

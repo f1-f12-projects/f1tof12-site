@@ -34,7 +34,7 @@ export const authService = {
     return apiService.post(process.env.REACT_APP_USER_CHANGE_PASSWORD_ENDPOINT || '', data);
   },
 
-  async refreshToken(refreshToken: string): Promise<ApiResponse<LoginResponse>> {
-    return apiService.post(process.env.REACT_APP_REFRESH_TOKEN_ENDPOINT || '', { refresh_token: refreshToken });
+  async refreshToken(refreshToken: string, username: string): Promise<ApiResponse<LoginResponse>> {
+    return apiService.post(process.env.REACT_APP_REFRESH_TOKEN_ENDPOINT || '', { refresh_token: refreshToken, username });
   }
 };

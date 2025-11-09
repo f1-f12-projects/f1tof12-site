@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, ReactNode, useEffect } from
 import { setRefreshTokenFunction } from '../services/apiService';
 import { UserRole } from '../types/roles';
 import { cacheService } from '../services/cacheService';
+import { authService } from '../services/authService';
 
 interface UserData {
   profileId: string;
@@ -35,21 +36,16 @@ const isTokenExpired = (token: string): boolean => {
   }
 };
 
-const refreshTokenAPI = async (refreshToken: string): Promise<{ access_token: string; expires_in?: number; expires_at?: string; refresh_token?: string } | null> => {
+const refreshTokenAPI = async (refreshToken: string, username: string): Promise<{ access_token: string; expires_in?: number; expires_at?: string; refresh_token?: string } | null> => {
   try {
     console.log('Attempting to refresh token...');
-    const response = await fetch(process.env.REACT_APP_REFRESH_TOKEN_ENDPOINT!, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refresh_token: refreshToken })
-    });
+    const response = await authService.refreshToken(refreshToken, username);
     
-    if (response.ok) {
-      const result = await response.json();
+    if (response.success && response.data) {
       console.log('Token refresh successful');
-      return result;
+      return response.data;
     } else {
-      console.log('Token refresh failed:', response.status, response.statusText);
+      console.log('Token refresh failed:', response.message);
       return null;
     }
   } catch (error) {
@@ -117,6 +113,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const setupRefreshTimer = (expiresAt?: string) => {
     if (refreshTimer) clearTimeout(refreshTimer);
     
+    const storedRefreshToken = refreshToken || localStorage.getItem('refreshToken');
+    if (!storedRefreshToken) {
+      console.log('No refresh token available, skipping timer setup');
+      return;
+    }
+    
     if (!expiresAt) {
       console.log('No expiresAt provided, skipping timer setup');
       return;
@@ -156,13 +158,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     
     const storedRefreshToken = refreshToken || localStorage.getItem('refreshToken');
     if (!storedRefreshToken) {
-      console.log('No refresh token available');
+      console.log('No refresh token available, logging out');
+      logout();
       return false;
     }
     
     setIsRefreshing(true);
     
-    const result = await refreshTokenAPI(storedRefreshToken);
+    const result = await refreshTokenAPI(storedRefreshToken, username || localStorage.getItem('username') || '');
     if (result) {
       console.log('Access token refreshed successfully');
       setAuthToken(result.access_token);
@@ -208,7 +211,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (token && storedUsername) {
       if (isTokenExpired(token)) {
         if (storedRefreshToken) {
-          refreshTokenAPI(storedRefreshToken).then(result => {
+          refreshTokenAPI(storedRefreshToken, storedUsername).then(result => {
             if (result) {
               setAuthToken(result.access_token);
               setUsername(storedUsername);
