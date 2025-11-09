@@ -128,19 +128,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const currentTime = Date.now();
     const timeUntilExpiry = expiryTime - currentTime;
     const refreshTime = Math.max(timeUntilExpiry - 60000, 5000); // Refresh 1 minute before expiry, minimum 5 seconds
-    
-    console.log('Setting up refresh timer:', {
-      expiresAt,
-      expiryTime: new Date(expiryTime).toISOString(),
-      currentTime: new Date(currentTime).toISOString(),
-      localExpiryTime: new Date(expiryTime).toLocaleString(),
-      localCurrentTime: new Date(currentTime).toLocaleString(),
-      timeUntilExpiry: Math.round(timeUntilExpiry / 1000) + 's',
-      refreshTime: Math.round(refreshTime / 1000) + 's',
-      timezoneOffset: new Date().getTimezoneOffset() + ' minutes',
-      isExpired: timeUntilExpiry <= 0
-    });
-    
+
     if (refreshTime > 0) {
       const timer = setTimeout(() => {
         console.log('Timer triggered, calling refreshAccessToken');
