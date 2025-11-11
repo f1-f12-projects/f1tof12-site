@@ -42,7 +42,8 @@ const apiCall = async <T>(method: string, endpoint: string, body?: any): Promise
   
   const config: RequestInit = {
     method,
-    headers
+    headers,
+    cache: 'no-cache'
   };
   
   if (body && method !== 'GET') {
