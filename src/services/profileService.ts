@@ -36,7 +36,6 @@ export const profileService = {
   },
 
   async createProfile(profileData: Omit<Profile, 'id' | 'created_date' | 'updated_date'>): Promise<ApiResponse<Profile>> {
-    console.log (profileData);
     const response = await apiService.post<ApiResponse<Profile>>(process.env.REACT_APP_PROFILE_ADD_ENDPOINT!, profileData);
     
     if (response.success) {

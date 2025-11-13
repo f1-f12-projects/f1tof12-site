@@ -3,7 +3,6 @@ import { Container, Paper, Typography, Box, Grid } from '@mui/material';
 import { Company } from '../../models/Company';
 import { Requirement } from '../../models/Requirement';
 import { Profile } from '../../models/Profile';
-import { ProfileStatus } from '../../models/ProfileStatus';
 import { companyService } from '../../services/companyService';
 import { requirementService } from '../../services/requirementService';
 import { profileService } from '../../services/profileService';
@@ -32,19 +31,24 @@ const ProcessProfiles: React.FC = () => {
     preferred_location: '',
     current_ctc: '',
     expected_ctc: '',
-    notice_period: ''
+    notice_period: '',
+    highest_education: '',
+    current_employer: '',
+    offer_in_hand: false
   });
   const [errors, setErrors] = useState<{[key: string]: boolean}>({});
   const [submitting, setSubmitting] = useState(false);
   const [profileRefreshKey, setProfileRefreshKey] = useState(0);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement> | any) => {
     const { name, value } = e.target;
-    setFormData(prev => ({...prev, [name]: value}));
+    const processedValue = name === 'offer_in_hand' ? value === 'Yes' : value;
+    setFormData(prev => ({...prev, [name]: processedValue}));
   };
 
   const handleBlur = (field: string) => {
-    if (formData[field as keyof typeof formData].trim()) {
+    const value = formData[field as keyof typeof formData];
+    if (typeof value === 'string' && value.trim()) {
       setErrors(prev => ({...prev, [field]: false}));
     }
   };
@@ -56,11 +60,12 @@ const ProcessProfiles: React.FC = () => {
     }
 
     // Validate all required fields
-    const requiredFields = ['name', 'email', 'phone', 'skills', 'experience_years', 'current_location', 'preferred_location', 'current_ctc', 'expected_ctc', 'notice_period'];
+    const requiredFields = ['name', 'email', 'phone', 'skills', 'experience_years', 'current_location', 'preferred_location', 'current_ctc', 'expected_ctc', 'notice_period', 'highest_education', 'current_employer'];
     const newErrors: {[key: string]: boolean} = {};
     
     requiredFields.forEach(field => {
-      if (!formData[field as keyof typeof formData].trim()) {
+      const value = formData[field as keyof typeof formData];
+      if (typeof value === 'string' && !value.trim()) {
         newErrors[field] = true;
       }
     });
@@ -79,6 +84,9 @@ const ProcessProfiles: React.FC = () => {
         current_ctc: formData.current_ctc ? parseFloat(formData.current_ctc) : null,
         expected_ctc: formData.expected_ctc ? parseFloat(formData.expected_ctc) : null,
         notice_period: formData.notice_period || null,
+        highest_education: formData.highest_education || null,
+        current_employer: formData.current_employer || null,
+        offer_in_hand: formData.offer_in_hand,
         requirement_id: selectedRequirement.requirement_id
       };
       
@@ -90,7 +98,8 @@ const ProcessProfiles: React.FC = () => {
         setFormData({
           name: '', email: '', phone: '', skills: '', experience_years: '',
           current_location: '', preferred_location: '', current_ctc: '',
-          expected_ctc: '', notice_period: ''
+          expected_ctc: '', notice_period: '', highest_education: '',
+          current_employer: '', offer_in_hand: false
         });
         setErrors({});
         setProfileRefreshKey(prev => prev + 1);

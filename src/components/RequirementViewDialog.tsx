@@ -276,7 +276,7 @@ const RequirementViewDialog: React.FC<RequirementViewDialogProps> = ({
             <Card sx={{ p: 3, borderRadius: 3, background: theme.palette.background.default, border: `1px solid ${isDark ? '#66bb6a' : '#4caf50'}` }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
                 <Typography variant="h6" sx={{ color: isDark ? '#66bb6a' : '#4caf50', fontWeight: 600 }}>
-                  Project Details
+                  Account Details
                 </Typography>
                 {canEditStatus && (
                   <Box sx={{ display: 'flex', gap: 1 }}>

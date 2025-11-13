@@ -22,10 +22,13 @@ const ProfileContent: React.FC<ProfileContentProps> = React.memo(({ profile, cop
       ]
     },
     {
-      title: '🎯 Professional Details',
+      title: '🎯 Professional Background',
       items: [
         { label: 'Experience: ', value: `${profile.experience_years} years` },
-        { label: 'Skills: ', value: profile.skills }
+        { label: 'Current Employer: ', value: profile.current_employer || 'Not specified' },
+        { label: 'Highest Education: ', value: profile.highest_education || 'Not specified' },
+        { label: 'Skills: ', value: profile.skills },
+        { label: 'Offers In Hand: ', value: profile.offer_in_hand ? 'Yes' : 'No' }
       ]
     },
     {
@@ -51,7 +54,7 @@ const ProfileContent: React.FC<ProfileContentProps> = React.memo(({ profile, cop
         <Grid item xs={12} md={6} key={index}>
           <Card sx={{ 
             p: 3, 
-            height: 180, 
+            height: 180,
             background: (theme) => theme.palette.mode === 'dark' ? 'linear-gradient(135deg, #424242 0%, #616161 100%)' : 'linear-gradient(135deg, #f5f5f5 0%, #e8eaf6 100%)', 
             borderRadius: 4,
             boxShadow: 'none',
@@ -61,22 +64,30 @@ const ProfileContent: React.FC<ProfileContentProps> = React.memo(({ profile, cop
               borderColor: 'primary.main'
             },
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-            ...((index === 0 || index === 1) && { mt: 2 }) 
+            ...((index === 0 || index === 1) && { mt: 2 }),
+            display: 'flex',
+            flexDirection: 'column'
           }}>
             <Typography variant="h6" sx={{ fontWeight: 500, mb: 2, color: 'primary.main' }}>
               {section.title}
             </Typography>
-            {section.items.map((item, itemIndex) => (
-              <Typography key={itemIndex} sx={{ mb: itemIndex < section.items.length - 1 ? 1 : 0, color: (theme) => theme.palette.text.primary, display: 'flex', alignItems: 'center' }}>
-                <span><strong>{item.label}</strong></span>
-                <span style={{ marginLeft: '4px' }}>{item.value}</span>
-                {(item.label === 'Email: ' || item.label === 'Phone: ') && (
-                  <IconButton size="small" onClick={() => copyToClipboard(item.value, item.label)} sx={{ ml: 0.5, p: 0.5 }}>
-                    <ContentCopyIcon fontSize="small" />
-                  </IconButton>
-                )}
-              </Typography>
-            ))}
+            <Box sx={{ 
+              flex: 1, 
+              overflowY: section.title === '🎯 Professional Background' ? 'scroll' : 'visible',
+              pr: section.title === '🎯 Professional Background' ? 1 : 0
+            }}>
+              {section.items.map((item, itemIndex) => (
+                <Typography key={itemIndex} sx={{ mb: itemIndex < section.items.length - 1 ? 1 : 0, color: (theme) => theme.palette.text.primary, display: 'flex', alignItems: 'center' }}>
+                  <span><strong>{item.label}</strong></span>
+                  <span style={{ marginLeft: '4px' }}>{item.value}</span>
+                  {(item.label === 'Email: ' || item.label === 'Phone: ') && (
+                    <IconButton size="small" onClick={() => copyToClipboard(item.value, item.label)} sx={{ ml: 0.5, p: 0.5 }}>
+                      <ContentCopyIcon fontSize="small" />
+                    </IconButton>
+                  )}
+                </Typography>
+              ))}
+            </Box>
           </Card>
         </Grid>
       ))}
