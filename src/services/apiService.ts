@@ -42,8 +42,7 @@ const apiCall = async <T>(method: string, endpoint: string, body?: any): Promise
   
   const config: RequestInit = {
     method,
-    headers,
-    cache: 'no-cache'
+    headers
   };
   
   if (body && method !== 'GET') {
@@ -71,7 +70,18 @@ const apiCall = async <T>(method: string, endpoint: string, body?: any): Promise
     throw error;
   }
   
-  return response.json();
+  const data = await response.json();
+  
+  // Add response headers to data if it's an ApiResponse object
+  if (data && typeof data === 'object' && 'success' in data) {
+    const headers: Record<string, string> = {};
+    response.headers.forEach((value, key) => {
+      headers[key] = value;
+    });
+    data.headers = headers;
+  }
+  
+  return data;
 };
 
 export const apiService = {
