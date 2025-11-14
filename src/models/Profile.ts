@@ -10,9 +10,13 @@ export interface Profile {
   current_ctc?: number | null;
   expected_ctc?: number | null;
   notice_period?: string | null;
+  highest_education?: string | null;
+  current_employer?: string | null;
+  offer_in_hand?: boolean | null;
   accepted_offer?: number | null;
   joining_date?: string | null;
   remarks?: string | null;
+  document_url?: string | null;
   status?: number;
   created_date?: string;
   updated_date?: string;

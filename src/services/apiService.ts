@@ -6,8 +6,12 @@ export const setRefreshTokenFunction = (fn: () => Promise<boolean>) => {
   refreshTokenFunction = fn;
 };
 
-const apiCall = async <T>(method: string, endpoint: string, body?: any): Promise<T> => {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+const apiCall = async <T>(method: string, endpoint: string, body?: any, isFormData = false): Promise<T> => {
+  const headers: Record<string, string> = {};
+  
+  if (!isFormData) {
+    headers['Content-Type'] = 'application/json';
+  }
   
   // Add CloudFront secret for all endpoints except login (production only)
   if (process.env.REACT_APP_CLOUDFRONT_SECRET) {
@@ -46,7 +50,7 @@ const apiCall = async <T>(method: string, endpoint: string, body?: any): Promise
   };
   
   if (body && method !== 'GET') {
-    config.body = JSON.stringify(body);
+    config.body = isFormData ? body : JSON.stringify(body);
   }
   
   const response = await fetch(`${BASE_URL}${endpoint}`, config);
@@ -87,6 +91,7 @@ const apiCall = async <T>(method: string, endpoint: string, body?: any): Promise
 export const apiService = {
   get: <T>(endpoint: string): Promise<T> => apiCall<T>('GET', endpoint),
   post: <T>(endpoint: string, body: any): Promise<T> => apiCall<T>('POST', endpoint, body),
+  postFormData: <T>(endpoint: string, formData: FormData): Promise<T> => apiCall<T>('POST', endpoint, formData, true),
   put: <T>(endpoint: string, body: any): Promise<T> => apiCall<T>('PUT', endpoint, body),
   delete: <T>(endpoint: string): Promise<T> => apiCall<T>('DELETE', endpoint)
 };

@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.1.0] - 2025-01-27
+
+### Added
+- Three new profile fields: Highest Education, Current Employer, and Offers In Hand
+- Modern form styling with gradient backgrounds and enhanced visual design
+- Grouped form fields with logical sections (Personal Information, Professional Background, Location Preferences, Compensation & Status)
+- Scrollable form content for better user experience
+- Select dropdown for Offers In Hand with Yes/No options
+
+### Enhanced
+- Profile form UI with contemporary design and smooth animations
+- Form field grouping for better organization and user flow
+- Profile details dialog updated to display new fields
+- Improved form validation and field handling
+- Enhanced form field styling with hover effects and focus states
+- Upload profile
+
+### Fixed
+- API field name mapping (offer_in_hand vs offers_in_hand)
+- Form data type handling for boolean values
+- Professional Background section scroll functionality
+
 ## [4.0.0] - 2025-01-27
 
 ### Added
