@@ -16,6 +16,7 @@ export interface Profile {
   accepted_offer?: number | null;
   joining_date?: string | null;
   remarks?: string | null;
+  document_url?: string | null;
   status?: number;
   created_date?: string;
   updated_date?: string;

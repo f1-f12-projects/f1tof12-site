@@ -9,7 +9,7 @@ interface FormFieldProps {
   sm: number;
   value: string | boolean;
   onChange: (e: React.ChangeEvent<HTMLInputElement> | any) => void;
-  error?: boolean;
+  error?: boolean | string;
   onBlur: (field: string) => void;
 }
 
@@ -118,8 +118,8 @@ const FormField = React.memo(({ field, label, type, xs, sm, value, onChange, err
         onChange={onChange}
         onBlur={() => onBlur(field)}
         required
-        error={error}
-        helperText={error ? 'This field is required' : ''}
+        error={Boolean(error)}
+        helperText={error === true ? 'This field is required' : (typeof error === 'string' ? error : '')}
         sx={modernTextFieldSx}
       />
     )}

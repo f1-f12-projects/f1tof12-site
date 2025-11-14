@@ -7,6 +7,7 @@ import { companyService } from '../../services/companyService';
 import { requirementService } from '../../services/requirementService';
 import { profileService } from '../../services/profileService';
 import { showAlert } from '../../utils/alert';
+import { isValidEmail } from '../../utils/validation';
 import PageHeader from '../../components/PageHeader';
 
 import CompanyCard from './components/CompanyCard';
@@ -34,9 +35,10 @@ const ProcessProfiles: React.FC = () => {
     notice_period: '',
     highest_education: '',
     current_employer: '',
-    offer_in_hand: false
+    offer_in_hand: false,
+    profile_file: null as File | null
   });
-  const [errors, setErrors] = useState<{[key: string]: boolean}>({});
+  const [errors, setErrors] = useState<{[key: string]: boolean | string}>({});
   const [submitting, setSubmitting] = useState(false);
   const [profileRefreshKey, setProfileRefreshKey] = useState(0);
 
@@ -46,9 +48,36 @@ const ProcessProfiles: React.FC = () => {
     setFormData(prev => ({...prev, [name]: processedValue}));
   };
 
+  const handleFileChange = (file: File | null) => {
+    setFormData(prev => ({...prev, profile_file: file}));
+    
+    if (file) {
+      const validTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      
+      if (!validTypes.includes(file.type)) {
+        setErrors(prev => ({...prev, profile_file: 'Only PDF and Word documents are allowed'}));
+        return;
+      }
+      
+      if (file.size > maxSize) {
+        setErrors(prev => ({...prev, profile_file: 'File size must be less than 5MB'}));
+        return;
+      }
+      
+      setErrors(prev => ({...prev, profile_file: false}));
+    } else {
+      setErrors(prev => ({...prev, profile_file: false}));
+    }
+  };
+
   const handleBlur = (field: string) => {
     const value = formData[field as keyof typeof formData];
     if (typeof value === 'string' && value.trim()) {
+      if (field === 'email' && !isValidEmail(value)) {
+        setErrors(prev => ({...prev, [field]: 'Please enter a valid email address'}));
+        return;
+      }
       setErrors(prev => ({...prev, [field]: false}));
     }
   };
@@ -61,12 +90,14 @@ const ProcessProfiles: React.FC = () => {
 
     // Validate all required fields
     const requiredFields = ['name', 'email', 'phone', 'skills', 'experience_years', 'current_location', 'preferred_location', 'current_ctc', 'expected_ctc', 'notice_period', 'highest_education', 'current_employer'];
-    const newErrors: {[key: string]: boolean} = {};
+    const newErrors: {[key: string]: boolean | string} = {};
     
     requiredFields.forEach(field => {
       const value = formData[field as keyof typeof formData];
       if (typeof value === 'string' && !value.trim()) {
         newErrors[field] = true;
+      } else if (field === 'email' && typeof value === 'string' && !isValidEmail(value)) {
+        newErrors[field] = 'Please enter a valid email address';
       }
     });
     
@@ -99,7 +130,7 @@ const ProcessProfiles: React.FC = () => {
           name: '', email: '', phone: '', skills: '', experience_years: '',
           current_location: '', preferred_location: '', current_ctc: '',
           expected_ctc: '', notice_period: '', highest_education: '',
-          current_employer: '', offer_in_hand: false
+          current_employer: '', offer_in_hand: false, profile_file: null
         });
         setErrors({});
         setProfileRefreshKey(prev => prev + 1);
@@ -210,6 +241,7 @@ const ProcessProfiles: React.FC = () => {
         errors={errors}
         submitting={submitting}
         onInputChange={handleInputChange}
+        onFileChange={handleFileChange}
         onBlur={handleBlur}
         onSubmit={handleAddProfile}
       />

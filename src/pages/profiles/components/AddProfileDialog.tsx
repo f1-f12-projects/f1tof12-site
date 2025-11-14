@@ -1,6 +1,7 @@
 import React from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Grid, CircularProgress, Typography, Box } from '@mui/material';
 import FormField from './FormField';
+import FileUploadField from './FileUploadField';
 import { FORM_FIELD_GROUPS } from './constants';
 
 interface FormData {
@@ -17,15 +18,17 @@ interface FormData {
   highest_education: string;
   current_employer: string;
   offer_in_hand: boolean;
+  profile_file: File | null;
 }
 
 interface AddProfileDialogProps {
   open: boolean;
   onClose: () => void;
   formData: FormData;
-  errors: {[key: string]: boolean};
+  errors: {[key: string]: boolean | string};
   submitting: boolean;
   onInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onFileChange: (file: File | null) => void;
   onBlur: (field: string) => void;
   onSubmit: () => void;
 }
@@ -37,6 +40,7 @@ const AddProfileDialog: React.FC<AddProfileDialogProps> = ({
   errors,
   submitting,
   onInputChange,
+  onFileChange,
   onBlur,
   onSubmit
 }) => {
@@ -69,7 +73,7 @@ const AddProfileDialog: React.FC<AddProfileDialogProps> = ({
         ✨ Add New Candidate
       </DialogTitle>
       <DialogContent sx={{ 
-        p: 4, 
+        p: 3, 
         background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
         flex: 1,
         display: 'flex',
@@ -77,35 +81,46 @@ const AddProfileDialog: React.FC<AddProfileDialogProps> = ({
         overflowY: 'auto',
         maxHeight: 'calc(95vh - 200px)'
       }}>
-        <Box sx={{ mt: 0.5 }}>
+        <Box sx={{ mt: 0 }}>
           {FORM_FIELD_GROUPS.map((group, groupIndex) => (
-            <Box key={group.title} sx={{ mb: 4 }}>
+            <Box key={group.title} sx={{ mb: 2.5 }}>
               <Typography 
                 variant="h6" 
                 sx={{ 
-                  mb: 2, 
+                  mb: 1.5, 
                   fontWeight: 600, 
                   color: 'rgba(0, 0, 0, 0.8)',
                   borderBottom: '2px solid rgba(102, 126, 234, 0.3)',
-                  pb: 1
+                  pb: 0.5
                 }}
               >
                 {group.title}
               </Typography>
-              <Grid container spacing={3}>
+              <Grid container spacing={2}>
                 {group.fields.map(({ field, label, type, xs, sm }) => (
-                  <FormField
-                    key={field}
-                    field={field}
-                    label={label}
-                    type={type}
-                    xs={xs}
-                    sm={sm}
-                    value={formData[field as keyof FormData]}
-                    onChange={onInputChange}
-                    error={errors[field]}
-                    onBlur={onBlur}
-                  />
+                  type === 'file' ? (
+                    <FileUploadField
+                      key={field}
+                      xs={xs}
+                      sm={sm}
+                      file={formData.profile_file}
+                      onChange={onFileChange}
+                      error={typeof errors[field] === 'string' ? errors[field] as string : undefined}
+                    />
+                  ) : (
+                    <FormField
+                      key={field}
+                      field={field}
+                      label={label}
+                      type={type}
+                      xs={xs}
+                      sm={sm}
+                      value={formData[field as keyof Omit<FormData, 'profile_file'>]}
+                      onChange={onInputChange}
+                      error={errors[field]}
+                      onBlur={onBlur}
+                    />
+                  )
                 ))}
               </Grid>
             </Box>

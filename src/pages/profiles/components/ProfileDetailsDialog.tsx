@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Box, Typography, Grid, Card, Chip, IconButton, Snackbar, TextField, Select, MenuItem, FormControl, InputLabel, CircularProgress, Alert } from '@mui/material';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import DescriptionIcon from '@mui/icons-material/Description';
 import { Profile } from '../../../models/Profile';
 import { profileStatusService } from '../../../services/profileStatusService';
 import { profileService } from '../../../services/profileService';
@@ -127,6 +128,7 @@ const ProfileContent: React.FC<ProfileContentProps> = React.memo(({ profile, cop
           </Card>
         </Grid>
       )}
+      
       
       <Grid item xs={12}>
         <Card sx={{ 
@@ -443,7 +445,24 @@ const ProfileDetailsDialog: React.FC<ProfileDetailsDialogProps> = ({ open, onClo
               Recruiter: {profileData.recruiter_name || 'Not assigned'}
             </Typography>
 
-            <Box sx={{ display: 'flex', gap: 1, marginLeft: 'auto' }}>
+            <Box sx={{ display: 'flex', gap: 1, marginLeft: 'auto', alignItems: 'center' }}>
+              {profileData.profile?.document_url && (
+                <IconButton
+                  size="small"
+                  href={profileData.profile.document_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  sx={{
+                    color: 'white',
+                    backgroundColor: 'rgba(255,255,255,0.1)',
+                    '&:hover': {
+                      backgroundColor: 'rgba(255,255,255,0.2)'
+                    }
+                  }}
+                >
+                  <DescriptionIcon fontSize="small" />
+                </IconButton>
+              )}
               <Chip 
                 label={state.stageText} 
                 color="primary" 
