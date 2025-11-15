@@ -36,35 +36,26 @@ export const profileService = {
   },
 
   async createProfile(profileData: Omit<Profile, 'id' | 'created_date' | 'updated_date'> & { profile_file?: File | null }): Promise<ApiResponse<Profile>> {
-    if (profileData.profile_file) {
-      const formData = new FormData();
-      const { profile_file, ...profile } = profileData;
-      
-      Object.entries(profile).forEach(([key, value]) => {
-        if (value !== null && value !== undefined) {
-          formData.append(key, value.toString());
-        }
-      });
-      
+    const formData = new FormData();
+    const { profile_file, ...profile } = profileData;
+    
+    Object.entries(profile).forEach(([key, value]) => {
+      if (value !== null && value !== undefined) {
+        formData.append(key, value.toString());
+      }
+    });
+    
+    if (profile_file) {
       formData.append('document', profile_file);
-      
-      const response = await apiService.postFormData<ApiResponse<Profile>>(process.env.REACT_APP_PROFILE_ADD_ENDPOINT!, formData);
-      
-      if (response.success) {
-        cacheService.delete(CACHE_KEY);
-      }
-      
-      return response;
-    } else {
-      const { profile_file, ...profile } = profileData;
-      const response = await apiService.post<ApiResponse<Profile>>(process.env.REACT_APP_PROFILE_ADD_ENDPOINT!, profile);
-      
-      if (response.success) {
-        cacheService.delete(CACHE_KEY);
-      }
-      
-      return response;
     }
+    
+    const response = await apiService.postFormData<ApiResponse<Profile>>(process.env.REACT_APP_PROFILE_ADD_ENDPOINT!, formData);
+    
+    if (response.success) {
+      cacheService.delete(CACHE_KEY);
+    }
+    
+    return response;
   },
 
   async updateProfile(id: number, updateData: Partial<Profile>): Promise<ApiResponse> {
