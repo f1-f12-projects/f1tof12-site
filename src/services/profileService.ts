@@ -83,6 +83,17 @@ export const profileService = {
     return response;
   },
 
+  async addRemarks(profileId: number, remarks: string): Promise<ApiResponse> {
+    const endpoint = process.env.REACT_APP_PROFILE_ADD_REMARKS_ENDPOINT!.replace('{profile_id}', profileId.toString());
+    const response = await apiService.put<ApiResponse>(endpoint, { remarks });
+    
+    if (response.success) {
+      cacheService.delete(CACHE_KEY);
+    }
+    
+    return response;
+  },
+
   clearCache(): void {
     cacheService.delete(CACHE_KEY);
   }

@@ -18,6 +18,7 @@ All notable changes to this project will be documented in this file.
 - Improved form validation and field handling
 - Enhanced form field styling with hover effects and focus states
 - Upload profile
+- Allow edit of Profile comments
 
 ### Fixed
 - API field name mapping (offer_in_hand vs offers_in_hand)
