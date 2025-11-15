@@ -11,9 +11,33 @@ interface ProfileContentProps {
   profile: Profile;
   copyToClipboard: (text: string, label: string) => void;
   currentStatus: string;
+  onRemarksUpdate?: () => void;
 }
 
-const ProfileContent: React.FC<ProfileContentProps> = React.memo(({ profile, copyToClipboard, currentStatus }) => {
+const ProfileContent: React.FC<ProfileContentProps> = React.memo(({ profile, copyToClipboard, currentStatus, onRemarksUpdate }) => {
+  const [showRemarksDialog, setShowRemarksDialog] = useState(false);
+  const [remarksValue, setRemarksValue] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleEditRemarks = () => {
+    setRemarksValue('');
+    setShowRemarksDialog(true);
+  };
+
+  const handleSaveRemarks = async () => {
+    if (!profile.id) return;
+    
+    try {
+      setIsSaving(true);
+      await profileService.addRemarks(profile.id, remarksValue);
+      setShowRemarksDialog(false);
+      onRemarksUpdate?.();
+    } catch (error) {
+      console.error('Error saving remarks:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
   const sections = useMemo(() => [
     {
       title: '📞 Contact Information',
@@ -143,9 +167,18 @@ const ProfileContent: React.FC<ProfileContentProps> = React.memo(({ profile, cop
           },
           transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
         }}>
-          <Typography variant="h6" sx={{ fontWeight: 500, mb: 2, color: 'primary.main' }}>
-            📝 Additional Notes
-          </Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h6" sx={{ fontWeight: 500, color: 'primary.main' }}>
+              📝 Additional Notes
+            </Typography>
+            <Button
+              size="small"
+              onClick={handleEditRemarks}
+              sx={{ minWidth: 'auto', px: 2 }}
+            >
+              Edit
+            </Button>
+          </Box>
           <TextField
             multiline
             rows={4}
@@ -165,6 +198,30 @@ const ProfileContent: React.FC<ProfileContentProps> = React.memo(({ profile, cop
               }
             }}
           />
+          
+          <Dialog open={showRemarksDialog} onClose={() => setShowRemarksDialog(false)} maxWidth="sm" fullWidth>
+            <DialogTitle>Edit Comments</DialogTitle>
+            <DialogContent>
+              <TextField
+                multiline
+                rows={6}
+                fullWidth
+                autoFocus
+                value={remarksValue}
+                onChange={(e) => setRemarksValue(e.target.value)}
+                placeholder="Enter your comments..."
+                sx={{ mt: 1 }}
+              />
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setShowRemarksDialog(false)} disabled={isSaving}>
+                Cancel
+              </Button>
+              <Button onClick={handleSaveRemarks} variant="contained" disabled={isSaving}>
+                {isSaving ? <CircularProgress size={20} /> : 'Save'}
+              </Button>
+            </DialogActions>
+          </Dialog>
         </Card>
       </Grid>
     </Grid>
@@ -205,8 +262,22 @@ const ProfileDetailsDialog: React.FC<ProfileDetailsDialogProps> = ({ open, onClo
     statusText: '',
     stageText: '',
     showErrorAlert: false,
-    errorMessage: ''
+    errorMessage: '',
+    profile: null as Profile | null
   });
+
+  const refreshProfile = async () => {
+    if (!profileData?.profile_id) return;
+    
+    try {
+      const response = await profileService.getProfile(profileData.profile_id);
+      if (response.success && response.data) {
+        setState(prev => ({ ...prev, profile: response.data || null }));
+      }
+    } catch (error) {
+      console.error('Error refreshing profile:', error);
+    }
+  };
 
   useEffect(() => {
     if (!profileData?.status_id) {
@@ -231,6 +302,14 @@ const ProfileDetailsDialog: React.FC<ProfileDetailsDialogProps> = ({ open, onClo
 
   useEffect(() => {
     if (!profileData) return;
+
+    // Set profile immediately
+    setState(prev => ({ ...prev, profile: profileData.profile || null }));
+
+    // Fetch fresh profile data to ensure we have latest remarks
+    if (profileData.profile_id) {
+      refreshProfile();
+    }
 
     const loadData = async () => {
       try {
@@ -479,8 +558,13 @@ const ProfileDetailsDialog: React.FC<ProfileDetailsDialogProps> = ({ open, onClo
       </DialogTitle>
       
       <DialogContent sx={{ p: 3 }}>
-        {profileData.profile ? (
-          <ProfileContent profile={profileData.profile} copyToClipboard={copyToClipboard} currentStatus={state.statusText} />
+        {state.profile ? (
+          <ProfileContent 
+            profile={state.profile} 
+            copyToClipboard={copyToClipboard} 
+            currentStatus={state.statusText}
+            onRemarksUpdate={refreshProfile}
+          />
         ) : (
           <Card sx={{ p: 4, textAlign: 'center', background: (theme) => theme.palette.mode === 'dark' ? 'linear-gradient(135deg, #2c2c2c 0%, #3c3c3c 100%)' : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)' }}>
             <Typography variant="h6" color="text.secondary">
