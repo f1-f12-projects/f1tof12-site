@@ -27,29 +27,13 @@ jobs:
     - run: |
         aws ssm put-parameter --name "/f1tof12/dev/cloudfront/secret-value" --value "${{ secrets.DEV_REACT_APP_CLOUDFRONT_SECRET }}" --type "SecureString" --overwrite || true
     
-    - name: Build application
-      run: |
-        export REACT_APP_CLOUDFRONT_SECRET=$(aws ssm get-parameter --name "/f1tof12/dev/cloudfront/secret-value" --with-decryption --query "Parameter.Value" --output text)
-        export REACT_APP_BASE_URL=https://dev-api.f1tof12.com
-        echo "Building with:"
-        echo "REACT_APP_BASE_URL=$REACT_APP_BASE_URL"
-        echo "REACT_APP_CLOUDFRONT_SECRET=${REACT_APP_CLOUDFRONT_SECRET:0:10}..."
-        mv .env.local .env.local.bak 2>/dev/null || true
-        (echo "REACT_APP_BASE_URL=$REACT_APP_BASE_URL"; echo "REACT_APP_CLOUDFRONT_SECRET=$REACT_APP_CLOUDFRONT_SECRET"; echo; cat production.env) > .env
-        echo "Generated .env file:"
-        head -5 .env
-        npm run build
-        echo "Build completed. Checking build directory:"
-        ls -la build/ || echo "Build directory does not exist"
-        mv .env.local.bak .env.local 2>/dev/null || true
+    - run: |
+        echo "REACT_APP_BASE_URL=https://dev-api.f1tof12.com" > .env.production
+        echo "REACT_APP_CLOUDFRONT_SECRET=${{ secrets.DEV_REACT_APP_CLOUDFRONT_SECRET }}" >> .env.production
+        cp production.env .env.endpoints
     
-    - name: Deploy to S3 and CloudFront
-      run: |
-        if [ ! -d "build" ]; then
-          echo "Error: build directory does not exist"
-          exit 1
-        fi
-        echo "Deploying build directory contents:"
-        ls -la build/
+    - run: npm run build
+    
+    - run: |
         aws s3 sync build/ s3://${{ secrets.DEV_S3_BUCKET }} --delete
         aws cloudfront create-invalidation --distribution-id ${{ secrets.DEV_CLOUDFRONT_DISTRIBUTION_ID }} --paths "/*"
