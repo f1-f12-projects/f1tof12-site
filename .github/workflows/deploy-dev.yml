@@ -22,11 +22,8 @@ jobs:
         node-version: '18'
         cache: 'npm'
     
-    - run: npm ci
-    
-    - run: |
-        aws ssm put-parameter --name "/f1tof12/dev/cloudfront/secret-value" --value "${{ secrets.DEV_REACT_APP_CLOUDFRONT_SECRET }}" --type "SecureString" --overwrite || true
-    
+    - run: npm ci    
+
     - run: |
         echo "REACT_APP_BASE_URL=https://dev-api.f1tof12.com" > .env.production
         echo "REACT_APP_CLOUDFRONT_SECRET=${{ secrets.DEV_REACT_APP_CLOUDFRONT_SECRET }}" >> .env.production
