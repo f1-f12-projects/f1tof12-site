@@ -46,7 +46,7 @@ npm start
 ```bash
 npm run build:dev
 # or
-./build-dev.sh
+./build.sh Dev
 ```
 - Fetches secrets from AWS SSM
 - Uses `https://dev-api.f1tof12.com`
@@ -54,9 +54,9 @@ npm run build:dev
 
 ### Production Build
 ```bash
-npm run build
+npm run build:prod
 # or
-./build-prod.sh
+./build.sh Prod
 ```
 - Fetches secrets from AWS SSM
 - Uses production API endpoints
@@ -105,12 +105,12 @@ git push origin main
 ### Manual Deployment
 ```bash
 # Dev deployment
-./build-dev.sh
+./build.sh Dev
 aws s3 sync build/ s3://dev.f1tof12.com --delete
 aws cloudfront create-invalidation --distribution-id E3466UWO43CDU4 --paths "/*"
 
 # Prod deployment
-./build-prod.sh
+./build.sh Prod
 aws s3 sync build/ s3://f1tof12.com --delete
 aws cloudfront create-invalidation --distribution-id <PROD_DISTRIBUTION_ID> --paths "/*"
 ```
@@ -128,8 +128,7 @@ aws cloudfront create-invalidation --distribution-id <PROD_DISTRIBUTION_ID> --pa
 - `src/services/`: API service layer
 - `src/pages/`: Application pages
 - `src/theme/index.ts`: Custom Material UI theme configuration.
-- `build-dev.sh`: Dev environment build script
-- `build-prod.sh`: Production build script
+- `build.sh`: Unified build script for dev and production environments
 - `.github/workflows/`: CI/CD pipelines
 - `package.json`: Project dependencies and scripts.
 - `tsconfig.json`: TypeScript configuration.
