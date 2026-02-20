@@ -1,0 +1,59 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DynamoDBAccess",
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:Scan",
+        "dynamodb:DeleteItem",
+        "dynamodb:BatchWriteItem",
+        "dynamodb:Query",
+        "dynamodb:GetItem",
+        "dynamodb:DescribeTable",
+        "dynamodb:ListTables"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "SSMParameterAccess",
+      "Effect": "Allow",
+      "Action": [
+        "ssm:GetParameter",
+        "ssm:GetParameters",
+        "ssm:GetParametersByPath",
+        "ssm:DescribeParameters"
+      ],
+      "Resource": [
+        "arn:aws:ssm:*:*:parameter/f1tof12/*"
+      ]
+    },
+    {
+      "Sid": "S3DeploymentAccess",
+      "Effect": "Allow",
+      "Action": [
+        "s3:PutObject",
+        "s3:PutObjectAcl",
+        "s3:GetObject",
+        "s3:DeleteObject",
+        "s3:ListBucket"
+      ],
+      "Resource": [
+        "arn:aws:s3:::f1tof12.com",
+        "arn:aws:s3:::f1tof12.com/*",
+        "arn:aws:s3:::dev.f1tof12.com",
+        "arn:aws:s3:::dev.f1tof12.com/*"
+      ]
+    },
+    {
+      "Sid": "CloudFrontInvalidation",
+      "Effect": "Allow",
+      "Action": [
+        "cloudfront:CreateInvalidation",
+        "cloudfront:GetInvalidation",
+        "cloudfront:ListInvalidations"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
