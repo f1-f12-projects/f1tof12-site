@@ -126,32 +126,30 @@ const InvoiceList: React.FC = () => {
     const loadData = async () => {
       setLoading(true);
       await handleApiResponse(
-        () => invoiceService.getInvoices(),
-        async (data) => {
-          const invoiceData = Array.isArray(data) ? data : [];
-          // Load companies first if we have invoices
-          if (invoiceData.length > 0) {
-            await handleApiResponse(
-              () => companyService.getCompanies(),
-              (companyData) => {
-                const activeCompanies = (Array.isArray(companyData) ? companyData : []).filter(c => c.status === 'active');
-                setCompanies(activeCompanies);
-                // Map company_id to company_name in invoices
-                const invoicesWithNames = invoiceData.map(invoice => ({
-                  ...invoice,
-                  company_name: activeCompanies.find(c => c.id === (invoice as any).company_id)?.name || 'Unknown Company'
-                }));
-                setInvoices(invoicesWithNames);
-              },
-              () => alert.error('Failed to load companies')
-            );
-          } else {
-            setInvoices(invoiceData);
-          }
-          setLoading(false);
+        () => companyService.getCompanies(),
+        async (companyData) => {
+          const activeCompanies = (Array.isArray(companyData) ? companyData : []).filter(c => c.status === 'active');
+          setCompanies(activeCompanies);
+          
+          await handleApiResponse(
+            () => invoiceService.getInvoices(),
+            (data) => {
+              const invoiceData = Array.isArray(data) ? data : [];
+              const invoicesWithNames = invoiceData.map(invoice => ({
+                ...invoice,
+                company_name: activeCompanies.find(c => c.id === (invoice as any).company_id)?.name || 'Unknown Company'
+              }));
+              setInvoices(invoicesWithNames);
+              setLoading(false);
+            },
+            () => {
+              alert.error('Failed to load invoices');
+              setLoading(false);
+            }
+          );
         },
         () => {
-          alert.error('Failed to load invoices');
+          alert.error('Failed to load companies');
           setLoading(false);
         }
       );
