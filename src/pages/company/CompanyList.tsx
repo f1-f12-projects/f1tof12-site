@@ -37,7 +37,10 @@ const CompanyList: React.FC = () => {
         setLoading(true);
         await handleApiResponse(
           () => companyService.getCompanies(),
-          (data) => setCompanies(Array.isArray(data) ? data : []),
+          (data) => {
+            const companies = Array.isArray(data) ? data : (data as any)?.companies || [];
+            setCompanies(companies);
+          },
           () => alert.error('Failed to load companies')
         );
         setLoading(false);
