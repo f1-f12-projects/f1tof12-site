@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Container, Paper, Typography, FormControl, InputLabel, Select, MenuItem, Grid, Card, CardContent } from '@mui/material';
 import { invoiceService } from '../../services/invoiceService';
+import { companyService } from '../../services/companyService';
 import { Invoice } from '../../models/Invoice';
+import { Company } from '../../models/Company';
 import { handleApiResponse } from '../../utils/apiHandler';
 import PageHeader from '../../components/PageHeader';
 
@@ -19,12 +21,13 @@ interface MonthlyData {
 
 const InvoiceReport: React.FC = () => {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
   const [selectedYear, setSelectedYear] = useState<number | ''>('');
   const [selectedCompany, setSelectedCompany] = useState<string>('All');
   const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([]);
 
   useEffect(() => {
-    loadInvoices();
+    loadData();
   }, []);
 
   useEffect(() => {
@@ -40,11 +43,27 @@ const InvoiceReport: React.FC = () => {
     }
   }, [invoices, selectedYear, selectedCompany]);
 
-  const loadInvoices = async () => {
-    await handleApiResponse(
-      () => invoiceService.getInvoices(),
-      (response) => setInvoices(response || [])
-    );
+  const loadData = async () => {
+    const [invoicesData, companiesData] = await Promise.all([
+      handleApiResponse(
+        () => invoiceService.getInvoices(),
+        (data) => data || []
+      ),
+      handleApiResponse(
+        () => companyService.getCompanies(),
+        (data) => Array.isArray(data) ? data : (data as any)?.companies || []
+      )
+    ]);
+    
+    if (companiesData) setCompanies(companiesData);
+    if (invoicesData) {
+      const companyMap = new Map(companiesData?.map(c => [c.id, c.name]) || []);
+      const enrichedInvoices = invoicesData.map((inv: any) => ({
+        ...inv,
+        company_name: companyMap.get(inv.company_id) || `Company ${inv.company_id}`
+      }));
+      setInvoices(enrichedInvoices);
+    }
   }
     
   const generateMonthlyData = () => {
@@ -86,9 +105,11 @@ const InvoiceReport: React.FC = () => {
   };
 
   const getAvailableCompanies = () => {
-    const companies = new Set<string>();
-    invoices.forEach(invoice => companies.add(invoice.company_name));
-    return ['All', ...Array.from(companies).sort()];
+    const companyNames = new Set<string>();
+    invoices.forEach(invoice => {
+      if (invoice.company_name) companyNames.add(invoice.company_name);
+    });
+    return ['All', ...Array.from(companyNames).sort()];
   };
 
   const totalPaid = monthlyData.reduce((sum, data) => sum + data.paidAmount, 0);
@@ -120,8 +141,8 @@ const InvoiceReport: React.FC = () => {
             label="Company"
             onChange={(e) => setSelectedCompany(e.target.value)}
           >
-            {getAvailableCompanies().map(company => (
-              <MenuItem key={company} value={company}>{company}</MenuItem>
+            {getAvailableCompanies().map((company, index) => (
+              <MenuItem key={`${company}-${index}`} value={company}>{company}</MenuItem>
             ))}
           </Select>
         </FormControl>

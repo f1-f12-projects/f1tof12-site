@@ -115,12 +115,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     
     const storedRefreshToken = refreshToken || localStorage.getItem('refreshToken');
     if (!storedRefreshToken) {
-      console.log('No refresh token available, skipping timer setup');
+      console.log('No refresh token available.');
       return;
     }
     
     if (!expiresAt) {
-      console.log('No expiresAt provided, skipping timer setup');
+      console.log('No expiresAt provided.');
       return;
     }
     
@@ -131,13 +131,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     if (refreshTime > 0) {
       const timer = setTimeout(() => {
-        console.log('Timer triggered, calling refreshAccessToken');
         refreshAccessToken();
       }, refreshTime);
       setRefreshTimer(timer);
-      console.log('Timer set successfully');
-    } else {
-      console.log('Refresh time is not positive, timer not set');
     }
   };
 

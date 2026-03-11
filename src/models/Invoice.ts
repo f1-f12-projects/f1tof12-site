@@ -7,6 +7,7 @@ export interface Invoice {
   status: 'pending' | 'paid' | 'overdue' | 'cancelled';
   raised_date: string;
   due_date: string;
+  remarks?: string;
   created_date?: string;
   updated_date?: string;
 }

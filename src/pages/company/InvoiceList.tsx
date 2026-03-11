@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Container, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Box, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Button, Chip, Stack, Card, ToggleButton, ToggleButtonGroup, MenuItem, Autocomplete, CircularProgress } from '@mui/material';
-import { Edit, Search, Receipt, Add } from '@mui/icons-material';
+import { Edit, Search, Receipt, Add, Visibility } from '@mui/icons-material';
 import { Invoice } from '../../models/Invoice';
 import { Company } from '../../models/Company';
 import { invoiceService } from '../../services/invoiceService';
@@ -20,6 +20,7 @@ interface FormFieldProps {
   type?: string;
   required?: boolean;
   options?: string[] | null;
+  multiline?: boolean;
   newInvoice: any;
   fieldErrors: {[key: string]: string};
   addingInvoice: boolean;
@@ -33,6 +34,7 @@ const FormField: React.FC<FormFieldProps> = ({
   type = 'text', 
   required = false, 
   options = null,
+  multiline = false,
   newInvoice,
   fieldErrors,
   addingInvoice,
@@ -70,6 +72,8 @@ const FormField: React.FC<FormFieldProps> = ({
     <TextField
       label={`${label}${required ? ' *' : ''}`}
       type={field === 'amount' ? 'text' : type}
+      multiline={multiline}
+      rows={multiline ? 3 : undefined}
       onChange={(e) => {
         if (field === 'amount') {
           const value = e.target.value.replace(/[^0-9]/g, '');
@@ -89,6 +93,34 @@ const FormField: React.FC<FormFieldProps> = ({
   );
 };
 
+interface ResizableHeaderProps {
+  column: string;
+  label: string;
+  width: number;
+  onMouseDown: (column: string) => (e: React.MouseEvent) => void;
+  resizable?: boolean;
+}
+
+const ResizableHeader: React.FC<ResizableHeaderProps> = ({ column, label, width, onMouseDown, resizable = true }) => (
+  <TableCell sx={{ ...tableStyles.headerCell, width, position: 'relative' }}>
+    {label}
+    {resizable && (
+      <Box 
+        onMouseDown={onMouseDown(column)} 
+        sx={{ 
+          position: 'absolute', 
+          right: 0, 
+          top: 0, 
+          bottom: 0, 
+          width: '5px', 
+          cursor: 'col-resize', 
+          '&:hover': { bgcolor: 'primary.main' } 
+        }} 
+      />
+    )}
+  </TableCell>
+);
+
 const InvoiceList: React.FC = () => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
@@ -106,14 +138,27 @@ const InvoiceList: React.FC = () => {
   const [addingInvoice, setAddingInvoice] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+  const [viewOpen, setViewOpen] = useState(false);
   const [editInvoice, setEditInvoice] = useState<Invoice | null>(null);
+  const [viewInvoice, setViewInvoice] = useState<Invoice | null>(null);
+  const [columnWidths, setColumnWidths] = useState({
+    invoice_number: 120,
+    po_number: 120,
+    company: 180,
+    amount: 120,
+    raised_date: 120,
+    due_date: 120,
+    status: 100,
+    actions: 120
+  });
   const [newInvoice, setNewInvoice] = useState<Omit<Invoice, 'id' | 'status' | 'issue_date' | 'created_date' | 'updated_date'> & { amount: number; raised_date: string }>({
     invoice_number: '',
     company_name: '',
     po_number: '',
     amount: 0,
     raised_date: '',
-    due_date: ''
+    due_date: '',
+    remarks: ''
   });
 
   useEffect(() => {
@@ -217,8 +262,6 @@ const InvoiceList: React.FC = () => {
     }
   };
 
-
-
   const handleAddInvoice = async () => {
     const errors: {[key: string]: string} = {};
     
@@ -255,6 +298,10 @@ const InvoiceList: React.FC = () => {
       payload.due_date = newInvoice.due_date;
     }
 
+    if (newInvoice.remarks) {
+      payload.remarks = newInvoice.remarks;
+    }
+
     await handleApiResponse(
       () => invoiceService.createInvoice(payload),
       (invoice) => {
@@ -263,7 +310,7 @@ const InvoiceList: React.FC = () => {
           company_name: selectedCompany.name
         };
         setInvoices(prev => [...prev, invoiceWithCompanyName]);
-        setNewInvoice({ invoice_number: '', company_name: '', po_number: '', amount: 0, raised_date: '', due_date: '' });
+        setNewInvoice({ invoice_number: '', company_name: '', po_number: '', amount: 0, raised_date: '', due_date: '', remarks: '' });
         setFieldErrors({});
         setAddOpen(false);
       },
@@ -279,6 +326,27 @@ const InvoiceList: React.FC = () => {
   const getCompanyName = (companyId: number): string => {
     const company = companies.find(c => c.id === companyId);
     return company?.name || 'Unknown Company';
+  };
+
+  const handleMouseDown = (column: string) => (e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = columnWidths[column as keyof typeof columnWidths];
+
+    const handleMouseMove = (e: MouseEvent) => {
+      setColumnWidths(prev => ({
+        ...prev,
+        [column]: Math.max(80, startWidth + e.clientX - startX)
+      }));
+    };
+
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
   };
 
   const getStatusColor = (status: string) => {
@@ -435,17 +503,17 @@ const InvoiceList: React.FC = () => {
             </Box>
           ) : (
             <TableContainer sx={tableStyles.container}>
-              <Table>
+              <Table sx={{ tableLayout: 'fixed' }}>
                 <TableHead>
                   <TableRow sx={tableStyles.headerRow}>
-                    <TableCell sx={tableStyles.headerCell}>Invoice #</TableCell>
-                    <TableCell sx={tableStyles.headerCell}>PO Number</TableCell>
-                    <TableCell sx={tableStyles.headerCell}>Company</TableCell>
-                    <TableCell sx={tableStyles.headerCell}>Amount</TableCell>
-                    <TableCell sx={tableStyles.headerCell}>Raised Date</TableCell>
-                    <TableCell sx={tableStyles.headerCell}>Due Date</TableCell>
-                    <TableCell sx={tableStyles.headerCell}>Status</TableCell>
-                    <TableCell sx={tableStyles.headerCell}>Actions</TableCell>
+                    <ResizableHeader column="invoice_number" label="Invoice #" width={columnWidths.invoice_number} onMouseDown={handleMouseDown} />
+                    <ResizableHeader column="po_number" label="PO Number" width={columnWidths.po_number} onMouseDown={handleMouseDown} />
+                    <ResizableHeader column="company" label="Company" width={columnWidths.company} onMouseDown={handleMouseDown} />
+                    <ResizableHeader column="amount" label="Amount" width={columnWidths.amount} onMouseDown={handleMouseDown} />
+                    <ResizableHeader column="raised_date" label="Raised Date" width={columnWidths.raised_date} onMouseDown={handleMouseDown} />
+                    <ResizableHeader column="due_date" label="Due Date" width={columnWidths.due_date} onMouseDown={handleMouseDown} />
+                    <ResizableHeader column="status" label="Status" width={columnWidths.status} onMouseDown={handleMouseDown} />
+                    <ResizableHeader column="actions" label="Actions" width={columnWidths.actions} resizable={false} onMouseDown={handleMouseDown} />
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -454,29 +522,29 @@ const InvoiceList: React.FC = () => {
                       key={invoice.id}
                       sx={tableStyles.bodyRow(index === filteredInvoices.length - 1)}
                     >
-                      <TableCell sx={tableStyles.bodyCell}>
-                        <Typography variant="subtitle1" fontWeight={500}>
+                      <TableCell sx={{ ...tableStyles.bodyCell, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        <Typography variant="subtitle1" fontWeight={500} noWrap>
                           {invoice.invoice_number}
                         </Typography>
                       </TableCell>
-                      <TableCell sx={tableStyles.bodyCell}>
-                        {invoice.po_number || '-'}
+                      <TableCell sx={{ ...tableStyles.bodyCell, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        <Typography noWrap>{invoice.po_number || '-'}</Typography>
                       </TableCell>
-                      <TableCell sx={tableStyles.bodyCell}>
-                        {invoice.company_name}
+                      <TableCell sx={{ ...tableStyles.bodyCell, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        <Typography noWrap>{invoice.company_name}</Typography>
                       </TableCell>
-                      <TableCell sx={tableStyles.bodyCell}>
+                      <TableCell sx={{ ...tableStyles.bodyCell, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         <Typography variant="body2" fontWeight={500} noWrap>
                           {CURRENCY_SYMBOL}{invoice.amount.toLocaleString('en-IN')}
                         </Typography>
                       </TableCell>
-                      <TableCell sx={tableStyles.bodyCell}>
-                        <Typography variant="body2" color="text.secondary">
+                      <TableCell sx={{ ...tableStyles.bodyCell, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        <Typography variant="body2" color="text.secondary" noWrap>
                           {formatDateTimeIST(invoice.raised_date)}
                         </Typography>
                       </TableCell>
-                      <TableCell sx={tableStyles.bodyCell}>
-                        <Typography variant="body2" color="text.secondary">
+                      <TableCell sx={{ ...tableStyles.bodyCell, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        <Typography variant="body2" color="text.secondary" noWrap>
                           {formatDateTimeIST(invoice.due_date)}
                         </Typography>
                       </TableCell>
@@ -493,16 +561,28 @@ const InvoiceList: React.FC = () => {
                         )}
                       </TableCell>
                       <TableCell sx={tableStyles.bodyCell}>
-                        <IconButton 
-                          onClick={() => {
-                            setEditInvoice(invoice);
-                            setEditOpen(true);
-                          }}
-                          size="small"
-                          sx={tableStyles.actionButton}
-                        >
-                          <Edit fontSize="small" />
-                        </IconButton>
+                        <Stack direction="row" spacing={1}>
+                          <IconButton 
+                            onClick={() => {
+                              setViewInvoice(invoice);
+                              setViewOpen(true);
+                            }}
+                            size="small"
+                            sx={tableStyles.actionButton}
+                          >
+                            <Visibility fontSize="small" />
+                          </IconButton>
+                          <IconButton 
+                            onClick={() => {
+                              setEditInvoice(invoice);
+                              setEditOpen(true);
+                            }}
+                            size="small"
+                            sx={tableStyles.actionButton}
+                          >
+                            <Edit fontSize="small" />
+                          </IconButton>
+                        </Stack>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -574,6 +654,15 @@ const InvoiceList: React.FC = () => {
                   updateInvoiceField={updateInvoiceField}
                 />
               </Box>
+              <FormField 
+                field="remarks" 
+                label="Remarks" 
+                multiline
+                newInvoice={newInvoice}
+                fieldErrors={fieldErrors}
+                addingInvoice={addingInvoice}
+                updateInvoiceField={updateInvoiceField}
+              />
             </Box>
           </DialogContent>
           <DialogActions>
@@ -586,6 +675,62 @@ const InvoiceList: React.FC = () => {
             >
               {addingInvoice ? 'Creating...' : 'Create'}
             </Button>
+          </DialogActions>
+        </Dialog>
+
+        <Dialog open={viewOpen} onClose={() => setViewOpen(false)} maxWidth="sm" fullWidth>
+          <DialogTitle>Invoice Details</DialogTitle>
+          <DialogContent sx={{ pt: 2 }}>
+            {viewInvoice && (
+              <Box sx={{ display: 'grid', gap: 2 }}>
+                <Box>
+                  <Typography variant="caption" color="text.secondary">Invoice Number</Typography>
+                  <Typography variant="body1" fontWeight={500}>{viewInvoice.invoice_number}</Typography>
+                </Box>
+                <Box>
+                  <Typography variant="caption" color="text.secondary">PO Number</Typography>
+                  <Typography variant="body1">{viewInvoice.po_number || '-'}</Typography>
+                </Box>
+                <Box>
+                  <Typography variant="caption" color="text.secondary">Company</Typography>
+                  <Typography variant="body1">{viewInvoice.company_name}</Typography>
+                </Box>
+                <Box>
+                  <Typography variant="caption" color="text.secondary">Amount</Typography>
+                  <Typography variant="body1" fontWeight={500}>{CURRENCY_SYMBOL}{viewInvoice.amount.toLocaleString('en-IN')}</Typography>
+                </Box>
+                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">Raised Date</Typography>
+                    <Typography variant="body2">{formatDateTimeIST(viewInvoice.raised_date)}</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">Due Date</Typography>
+                    <Typography variant="body2">{formatDateTimeIST(viewInvoice.due_date)}</Typography>
+                  </Box>
+                </Box>
+                <Box>
+                  <Typography variant="caption" color="text.secondary">Status</Typography>
+                  <Box sx={{ mt: 0.5 }}>
+                    <Chip 
+                      label={viewInvoice.status.charAt(0).toUpperCase() + viewInvoice.status.slice(1)}
+                      color={getStatusColor(viewInvoice.status)}
+                      size="small"
+                      sx={{ fontWeight: 500 }}
+                    />
+                  </Box>
+                </Box>
+                {viewInvoice.remarks && (
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">Remarks</Typography>
+                    <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', mt: 0.5 }}>{viewInvoice.remarks}</Typography>
+                  </Box>
+                )}
+              </Box>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setViewOpen(false)}>Close</Button>
           </DialogActions>
         </Dialog>
 
