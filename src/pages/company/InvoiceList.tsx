@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Container, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Box, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Button, Chip, Stack, Card, ToggleButton, ToggleButtonGroup, MenuItem, Autocomplete, CircularProgress } from '@mui/material';
-import { Edit, Search, Receipt, Add, Visibility } from '@mui/icons-material';
+import { Container, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Box, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Button, Chip, Stack, Card, ToggleButton, ToggleButtonGroup, MenuItem, Autocomplete, CircularProgress, Tooltip, TablePagination } from '@mui/material';
+import { Edit, Search, Receipt, Add, Visibility, ChatBubbleOutline } from '@mui/icons-material';
 import { Invoice } from '../../models/Invoice';
 import { Company } from '../../models/Company';
 import { invoiceService } from '../../services/invoiceService';
@@ -126,10 +126,21 @@ const InvoiceList: React.FC = () => {
   const { isAuthenticated } = useAuth();
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [dateFrom, setDateFrom] = useState<string>('');
-  const [dateTo, setDateTo] = useState<string>('');
-  const [dueDateFrom, setDueDateFrom] = useState<string>('');
-  const [dueDateTo, setDueDateTo] = useState<string>('');
+  const toLocalDate = (d: Date) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+  const [dateFrom, setDateFrom] = useState<string>(() => {
+    const d = new Date();
+    return toLocalDate(new Date(d.getFullYear(), d.getMonth(), 1));
+  });
+  const [dateTo, setDateTo] = useState<string>(() => {
+    const d = new Date();
+    return toLocalDate(new Date(d.getFullYear(), d.getMonth() + 1, 0));
+  });
+  const [fetchTrigger, setFetchTrigger] = useState(0);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
@@ -151,6 +162,8 @@ const InvoiceList: React.FC = () => {
     status: 100,
     actions: 120
   });
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
   const [newInvoice, setNewInvoice] = useState<Omit<Invoice, 'id' | 'status' | 'issue_date' | 'created_date' | 'updated_date'> & { amount: number; raised_date: string }>({
     invoice_number: '',
     company_name: '',
@@ -167,67 +180,54 @@ const InvoiceList: React.FC = () => {
       navigate('/login');
       return;
     }
-    
-    const loadData = async () => {
-      setLoading(true);
-      await handleApiResponse(
-        () => companyService.getCompanies(),
-        async (companyData) => {
-          const activeCompanies = (Array.isArray(companyData) ? companyData : []).filter(c => c.status === 'active');
-          setCompanies(activeCompanies);
-          
-          await handleApiResponse(
-            () => invoiceService.getInvoices(),
-            (data) => {
-              const invoiceData = Array.isArray(data) ? data : [];
-              const invoicesWithNames = invoiceData.map(invoice => ({
-                ...invoice,
-                company_name: activeCompanies.find(c => c.id === (invoice as any).company_id)?.name || 'Unknown Company'
-              }));
-              setInvoices(invoicesWithNames);
-              setLoading(false);
-            },
-            () => {
-              alert.error('Failed to load invoices');
-              setLoading(false);
-            }
-          );
-        },
-        () => {
-          alert.error('Failed to load companies');
-          setLoading(false);
-        }
-      );
-    };
-    loadData();
+    setLoading(true);
+    handleApiResponse(
+      () => companyService.getCompanies(),
+      (companyData) => {
+        const activeCompanies = (Array.isArray(companyData) ? companyData : []).filter(c => c.status === 'active');
+        setCompanies(activeCompanies);
+      },
+      () => {
+        alert.error('Failed to load companies');
+        setLoading(false);
+      }
+    );
   }, [isAuthenticated, navigate]);
 
-  const filteredInvoices = useMemo(() => 
+  useEffect(() => {
+    if (companies.length === 0 || !dateFrom || !dateTo) return;
+    setLoading(true);
+    handleApiResponse(
+      () => invoiceService.getInvoicesByDateRange(dateFrom, dateTo),
+      (data) => {
+        const invoiceData = Array.isArray(data) ? data : [];
+        const invoicesWithNames = invoiceData.map(invoice => ({
+          ...invoice,
+          company_name: companies.find(c => c.id === (invoice as any).company_id)?.name || 'Unknown Company'
+        }));
+        setInvoices(invoicesWithNames);
+        setLoading(false);
+      },
+      () => {
+        alert.error('Failed to load invoices');
+        setLoading(false);
+      }
+    );
+  }, [companies, fetchTrigger]); // dateFrom/dateTo intentionally excluded — fetched only on button click
+
+  const filteredInvoices = useMemo(() =>
     invoices.filter(invoice => {
       const matchesCompany = !selectedCompany || invoice.company_name === selectedCompany;
       const matchesStatus = statusFilter === 'all' || invoice.status === statusFilter;
-      
-      // Raised date filtering
-      const dateToCheck = invoice.raised_date || (invoice as any).raised_date;
-      let matchesRaisedDate = true;
-      if (dateToCheck && (dateFrom || dateTo)) {
-        const invoiceDate = new Date(dateToCheck.split('T')[0]);
-        const matchesDateFrom = !dateFrom || invoiceDate >= new Date(dateFrom);
-        const matchesDateTo = !dateTo || invoiceDate <= new Date(dateTo);
-        matchesRaisedDate = matchesDateFrom && matchesDateTo;
-      }
-      
-      // Due date filtering
-      let matchesDueDate = true;
-      if (invoice.due_date && (dueDateFrom || dueDateTo)) {
-        const dueDate = new Date(invoice.due_date.split('T')[0]);
-        const matchesDueDateFrom = !dueDateFrom || dueDate >= new Date(dueDateFrom);
-        const matchesDueDateTo = !dueDateTo || dueDate <= new Date(dueDateTo);
-        matchesDueDate = matchesDueDateFrom && matchesDueDateTo;
-      }
-      
-      return matchesCompany && matchesStatus && matchesRaisedDate && matchesDueDate;
-    }), [invoices, selectedCompany, statusFilter, dateFrom, dateTo, dueDateFrom, dueDateTo]);
+      return matchesCompany && matchesStatus;
+    }), [invoices, selectedCompany, statusFilter]);
+
+  // Reset to first page whenever filters change
+  useEffect(() => { setPage(0); }, [selectedCompany, statusFilter, invoices]);
+
+  const paginatedInvoices = useMemo(() =>
+    filteredInvoices.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
+    [filteredInvoices, page, rowsPerPage]);
 
   const handleStatusUpdate = async (id: number, newStatus: string) => {
     const invoice = invoices.find(i => i.id === id);
@@ -422,19 +422,14 @@ const InvoiceList: React.FC = () => {
                 <ToggleButton value="overdue" sx={{ px: 3, borderRadius: 2 }}>Overdue</ToggleButton>
               </ToggleButtonGroup>
             </Stack>
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
               <TextField
                 label="Raised From"
                 type="date"
                 value={dateFrom}
                 onChange={(e) => setDateFrom(e.target.value)}
                 InputLabelProps={{ shrink: true }}
-                sx={{ 
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: 3,
-                    backgroundColor: 'action.hover'
-                  }
-                }}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3, backgroundColor: 'action.hover' } }}
               />
               <TextField
                 label="Raised To"
@@ -442,50 +437,27 @@ const InvoiceList: React.FC = () => {
                 value={dateTo}
                 onChange={(e) => setDateTo(e.target.value)}
                 InputLabelProps={{ shrink: true }}
-                sx={{ 
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: 3,
-                    backgroundColor: 'action.hover'
-                  }
-                }}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3, backgroundColor: 'action.hover' } }}
               />
-              <TextField
-                label="Due From"
-                type="date"
-                value={dueDateFrom}
-                onChange={(e) => setDueDateFrom(e.target.value)}
-                InputLabelProps={{ shrink: true }}
-                sx={{ 
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: 3,
-                    backgroundColor: 'action.hover'
-                  }
-                }}
-              />
-              <TextField
-                label="Due To"
-                type="date"
-                value={dueDateTo}
-                onChange={(e) => setDueDateTo(e.target.value)}
-                InputLabelProps={{ shrink: true }}
-                sx={{ 
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: 3,
-                    backgroundColor: 'action.hover'
-                  }
-                }}
-              />
+              <Button
+                variant="contained"
+                startIcon={<Search />}
+                onClick={() => setFetchTrigger(t => t + 1)}
+                sx={{ px: 3, flexShrink: 0 }}
+              >
+                Fetch
+              </Button>
               <Button
                 variant="outlined"
                 onClick={() => {
-                  setDateFrom('');
-                  setDateTo('');
-                  setDueDateFrom('');
-                  setDueDateTo('');
+                  const now = new Date();
+                  setDateFrom(toLocalDate(new Date(now.getFullYear(), now.getMonth(), 1)));
+                  setDateTo(toLocalDate(new Date(now.getFullYear(), now.getMonth() + 1, 0)));
+                  setFetchTrigger(t => t + 1);
                 }}
-                sx={{ minWidth: 'auto', px: 2 }}
+                sx={{ flexShrink: 0 }}
               >
-                Clear All
+                Reset
               </Button>
             </Stack>
           </Stack>
@@ -502,6 +474,7 @@ const InvoiceList: React.FC = () => {
               </Typography>
             </Box>
           ) : (
+            <Box>
             <TableContainer sx={tableStyles.container}>
               <Table sx={{ tableLayout: 'fixed' }}>
                 <TableHead>
@@ -517,15 +490,48 @@ const InvoiceList: React.FC = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {filteredInvoices.map((invoice, index) => (
-                    <TableRow 
+                  {paginatedInvoices.map((invoice, index) => (
+                    <Tooltip
                       key={invoice.id}
-                      sx={tableStyles.bodyRow(index === filteredInvoices.length - 1)}
+                      title={invoice.remarks ? (
+                        <Box sx={{ p: 0.5 }}>
+                          <Typography variant="caption" sx={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, opacity: 0.7, display: 'block', mb: 0.5 }}>
+                            Remarks
+                          </Typography>
+                          <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
+                            {invoice.remarks}
+                          </Typography>
+                        </Box>
+                      ) : ''}
+                      placement="top-start"
+                      arrow
+                      disableHoverListener={!invoice.remarks}
+                      componentsProps={{
+                        tooltip: {
+                          sx: {
+                            bgcolor: 'grey.900',
+                            color: 'common.white',
+                            maxWidth: 320,
+                            borderRadius: 2,
+                            boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+                            p: 1.5,
+                            '& .MuiTooltip-arrow': { color: 'grey.900' }
+                          }
+                        }
+                      }}
+                    >
+                    <TableRow
+                      sx={tableStyles.bodyRow(index === paginatedInvoices.length - 1)}
                     >
                       <TableCell sx={{ ...tableStyles.bodyCell, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        <Typography variant="subtitle1" fontWeight={500} noWrap>
-                          {invoice.invoice_number}
-                        </Typography>
+                        <Stack direction="row" alignItems="center" spacing={0.5} sx={{ overflow: 'hidden' }}>
+                          <Typography variant="subtitle1" fontWeight={500} noWrap>
+                            {invoice.invoice_number}
+                          </Typography>
+                          {invoice.remarks && (
+                            <ChatBubbleOutline sx={{ fontSize: 14, color: 'primary.main', flexShrink: 0, opacity: 0.7 }} />
+                          )}
+                        </Stack>
                       </TableCell>
                       <TableCell sx={{ ...tableStyles.bodyCell, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         <Typography noWrap>{invoice.po_number || '-'}</Typography>
@@ -585,10 +591,22 @@ const InvoiceList: React.FC = () => {
                         </Stack>
                       </TableCell>
                     </TableRow>
+                    </Tooltip>
                   ))}
                 </TableBody>
               </Table>
             </TableContainer>
+            <TablePagination
+              component="div"
+              count={filteredInvoices.length}
+              page={page}
+              onPageChange={(_, newPage) => setPage(newPage)}
+              rowsPerPage={rowsPerPage}
+              onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+              rowsPerPageOptions={[5, 10, 25, 50]}
+              sx={{ borderTop: '1px solid', borderColor: 'divider' }}
+            />
+            </Box>
           )}
         </Box>
         

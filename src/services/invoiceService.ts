@@ -19,6 +19,11 @@ export const invoiceService = {
     return response;
   },
 
+  async getInvoicesByDateRange(fromDate: string, toDate: string): Promise<ApiResponse<Invoice[]>> {
+    const endpoint = `${process.env.REACT_APP_INVOICE_LIST_BY_DATE_RANGE_ENDPOINT}?from_date=${fromDate}&to_date=${toDate}`;
+    return await apiService.get<ApiResponse<Invoice[]>>(endpoint);
+  },
+
   async createInvoice(invoice: Omit<Invoice, 'id'>): Promise<ApiResponse<Invoice>> {
     const response = await apiService.post<ApiResponse<Invoice>>(process.env.REACT_APP_INVOICE_CREATE_ENDPOINT!, invoice);
     
