@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.3.0] - 2026-03-18
+
+### Changed
+- `endpoints.env` (renamed from `.env.endpoints`) is now checked into git and is the single source of truth for all API endpoint paths across Local, Dev, and Prod environments
+- `build.sh` simplified to Local only — Dev and Prod deployments fully handled by GitHub Actions
+- `npm run build` simplified — removed `.env.local` backup/restore and file merge logic
+- Updated `README.md` with accurate build, deployment, and configuration instructions
+
+### Removed
+- `.env.local` — `ENVIRONMENT` variable was unused in code
+- `.env.production` — replaced by direct `.env` generation in GitHub Actions workflows
+- `production.env` — was a duplicate of `endpoints.env`, unused
+- `.env 2.endpoints` — was a stale iCloud duplicate, unused
+- `build.sh Dev` and `build.sh Prod` options — deployments now fully managed by GitHub Actions
+
+## [4.2.0] - 2026-03-17
+
+### Added
+- Invoice list by date range — new service method `getInvoicesByDateRange` calling `/vst/invoices/list/by-date-range`
+- Fetch button on Invoices page to load invoices on demand for the selected date range
+- Reset button to restore the date range to the current month and re-fetch
+
+### Enhanced
+- Invoices page now defaults to the current month's date range on load
+- Replaced client-side raised date filtering with server-side date range fetching
+- Fixed UTC timezone shift when computing default dates (now uses local date formatting)
+
+### Removed
+- Due From and Due To filter fields from the Invoices page
+
 ## [4.1.0] - 2025-01-27
 
 ### Added

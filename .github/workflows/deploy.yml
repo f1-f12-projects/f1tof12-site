@@ -25,9 +25,9 @@ jobs:
     - run: npm ci
     
     - run: |
-        echo "REACT_APP_BASE_URL=${{ secrets.REACT_APP_BASE_URL }}" > .env.production
-        echo "REACT_APP_CLOUDFRONT_SECRET=${{ secrets.REACT_APP_CLOUDFRONT_SECRET }}" >> .env.production
-        cp production.env .env.endpoints
+        echo "REACT_APP_BASE_URL=${{ secrets.REACT_APP_BASE_URL }}" > .env
+        echo "REACT_APP_CLOUDFRONT_SECRET=${{ secrets.REACT_APP_CLOUDFRONT_SECRET }}" >> .env
+        cat endpoints.env >> .env
     
     - run: npm run build
     
