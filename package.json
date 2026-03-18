@@ -1,7 +1,7 @@
 {
   "name": "f1tof12-site",
   "description": "F1 to F12 is a platform developed for Recruitment companies for their day to day operations.",
-  "version": "4.2.0",
+  "version": "4.3.0",
   "author": "Vijay Koteswar",
   "license": "UNLICENSED",
   "private": true,
@@ -12,9 +12,8 @@
   },
   "scripts": {
     "start": "NODE_OPTIONS='--openssl-legacy-provider --max-old-space-size=4096' react-scripts start",
-    "build": "mv .env.local .env.local.bak 2>/dev/null || true && (cat .env.production; echo; cat .env.endpoints) > .env && react-scripts build && mv .env.local.bak .env.local 2>/dev/null || true",
-    "build:dev": "./build.sh Dev",
-    "build:prod": "./build.sh Prod",
+    "build": "NODE_OPTIONS='--openssl-legacy-provider --max-old-space-size=4096' react-scripts build",
+    "start:local": "./build.sh Local",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
