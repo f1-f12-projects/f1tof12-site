@@ -27,6 +27,7 @@ jobs:
     - run: |
         echo "REACT_APP_BASE_URL=${{ secrets.REACT_APP_BASE_URL }}" > .env
         echo "REACT_APP_CLOUDFRONT_SECRET=${{ secrets.REACT_APP_CLOUDFRONT_SECRET }}" >> .env
+        echo "REACT_APP_TURNSTILE_SITE_KEY=${{ secrets.REACT_APP_TURNSTILE_SITE_KEY }}" >> .env
         cat endpoints.env >> .env
     
     - run: npm run build

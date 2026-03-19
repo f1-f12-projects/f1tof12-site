@@ -1,8 +1,9 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { Box, CssBaseline, Container, Typography } from '@mui/material';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Box, CssBaseline, Container, Typography, CircularProgress } from '@mui/material';
 import MaterialUIWrapper from './components/MaterialUIWrapper';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { roleHelper } from './utils/roleHelper';
 import { AlertProvider } from './utils/alert';
 import { ConfirmProvider } from './utils/confirm';
 import Header from './components/Header';
@@ -26,6 +27,43 @@ import ProfileDashboard from './pages/reports/ProfileDashboard';
 import Profile from './pages/Profile';
 import Leaves from './pages/Leaves';
 
+const PublicOnlyRoute: React.FC<{ element: React.ReactElement }> = ({ element }) => {
+  const { isAuthenticated, isInitializing, userRole } = useAuth();
+
+  if (isInitializing) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (isAuthenticated && userRole) {
+    return <Navigate to={roleHelper.getDefaultRoute(userRole)} replace />;
+  }
+
+  return element;
+};
+
+const ProtectedRoute: React.FC<{ element: React.ReactElement }> = ({ element }) => {
+  const { isAuthenticated, isInitializing } = useAuth();
+  const location = useLocation();
+
+  if (isInitializing) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  return element;
+};
+
 const HomePage: React.FC = () => (
   <Container maxWidth="lg" sx={{ py: 4 }}>
     <Carousel />
@@ -37,11 +75,11 @@ const HomePage: React.FC = () => (
   </Container>
 );
 
-const routes = {
-  // Generic Routes
+const publicRoutes: Record<string, React.ComponentType> = {
   '/': HomePage,
-  '/login': Login,
+};
 
+const protectedRoutes: Record<string, React.ComponentType> = {
   // User Routes
   '/profile': Profile,
   '/leaves': Leaves,
@@ -74,18 +112,22 @@ const comingSoonRoutes = [
 ];
 
 const AppContent: React.FC = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isInitializing } = useAuth();
   
   return (
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         <Header />
-        {isAuthenticated && <MegaBar />}
+        {!isInitializing && isAuthenticated && <MegaBar />}
           
           <Box sx={{ flex: 1 }}>
             <Routes>
-              {Object.entries(routes).map(([path, Component]) => (
+              {Object.entries(publicRoutes).map(([path, Component]) => (
                 <Route key={path} path={path} element={<Component />} />
+              ))}
+              <Route path="/login" element={<PublicOnlyRoute element={<Login />} />} />
+              {Object.entries(protectedRoutes).map(([path, Component]) => (
+                <Route key={path} path={path} element={<ProtectedRoute element={<Component />} />} />
               ))}
               {comingSoonRoutes.map(path => (
                 <Route key={path} path={path} element={<ComingSoon />} />

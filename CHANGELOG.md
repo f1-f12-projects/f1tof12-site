@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.4.0] - 2026-03-19
+
+### Security
+- Added Cloudflare Turnstile CAPTCHA to Login page
+- Widget runs in `interaction-only` mode — invisible to legitimate users, challenge only shown for suspicious traffic
+- Site key stored as GitHub Repository Secret, injected at build time via CI/CD workflows
+- Secret key stored in AWS SSM Parameter Store as SecureString
+
 ## [4.3.0] - 2026-03-18
 
 ### Changed
