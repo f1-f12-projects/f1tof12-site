@@ -18,6 +18,7 @@ interface AuthContextType {
   login: (username: string, token: string, role: UserRole, userData?: UserData, expiresIn?: number, expiresAt?: string, refreshToken?: string, cacheData?: Record<string, any>) => void;
   logout: () => void;
   isAuthenticated: boolean;
+  isInitializing: boolean;
   checkAuthentication: () => Promise<boolean>;
   handleAuthError: () => void;
   refreshAccessToken: () => Promise<boolean>;
@@ -61,6 +62,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [userData, setUserData] = useState<UserData | null>(null);
   const [refreshToken, setRefreshToken] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
   const [expiresIn, setExpiresIn] = useState<number | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [refreshTimer, setRefreshTimer] = useState<NodeJS.Timeout | null>(null);
@@ -212,9 +214,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             } else {
               logout();
             }
+            setIsInitializing(false);
           });
         } else {
           logout();
+          setIsInitializing(false);
         }
       } else {
         setAuthToken(token);
@@ -225,7 +229,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setExpiresIn(storedExpiresIn ? parseInt(storedExpiresIn) : null);
         setExpiresAt(storedExpiresAt);
         setupRefreshTimer(storedExpiresAt || undefined);
+        setIsInitializing(false);
       }
+    } else {
+      setIsInitializing(false);
     }
     
     return () => {
@@ -262,7 +269,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const isAuthenticated = !!username && !!authToken && !isTokenExpired(authToken || '');
 
   return (
-    <AuthContext.Provider value={{ username, authToken, userRole, userData, login, logout, isAuthenticated, checkAuthentication, handleAuthError, refreshAccessToken, cacheData, getCachedData }}>
+    <AuthContext.Provider value={{ username, authToken, userRole, userData, login, logout, isAuthenticated, isInitializing, checkAuthentication, handleAuthError, refreshAccessToken, cacheData, getCachedData }}>
       {children}
     </AuthContext.Provider>
   );

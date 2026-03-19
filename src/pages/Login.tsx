@@ -35,6 +35,7 @@ const Login: React.FC = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
   const isMounted = useRef(true);
+  const turnstileRef = useRef<HTMLDivElement>(null);
   
   const [formData, setFormData] = useState({ username: '', password: '' });
   const [errors, setErrors] = useState({ username: '', password: '' });
@@ -43,8 +44,28 @@ const Login: React.FC = () => {
   const [passwordData, setPasswordData] = useState({ new: '', confirm: '', error: '' });
   const [loading, setLoading] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState('');
 
   useEffect(() => {
+    const renderTurnstile = () => {
+      if (turnstileRef.current && (window as any).turnstile) {
+        (window as any).turnstile.render(turnstileRef.current, {
+          sitekey: process.env.REACT_APP_TURNSTILE_SITE_KEY,
+          appearance: 'interaction-only',
+          callback: (token: string) => setTurnstileToken(token),
+          'expired-callback': () => setTurnstileToken(''),
+          'error-callback': () => setTurnstileToken(''),
+        });
+      }
+    };
+
+    if ((window as any).turnstile) {
+      renderTurnstile();
+    } else {
+      const script = document.querySelector('script[src*="turnstile"]');
+      script?.addEventListener('load', renderTurnstile);
+    }
+
     return () => { isMounted.current = false; };
   }, []);
 
@@ -69,12 +90,13 @@ const Login: React.FC = () => {
     
     setErrors(newErrors);
     
-    if (!newErrors.username && !newErrors.password) {
+    if (!newErrors.username && !newErrors.password && turnstileToken) {
       setLoading(true);
       await handleApiResponse(
         () => authService.login({
           username: formData.username,
-          password: formData.password
+          password: formData.password,
+          turnstile_token: turnstileToken
         }),
         (data: any) => {
           if (!isMounted.current) return;
@@ -196,7 +218,8 @@ const Login: React.FC = () => {
                 )
               }}
             />
-            <Button type="submit" variant="contained" size="large" fullWidth sx={{ mt: 2 }} disabled={loading}>
+            <div ref={turnstileRef} />
+            <Button type="submit" variant="contained" size="large" fullWidth sx={{ mt: 2 }} disabled={loading || !turnstileToken}>
               {loading ? <CircularProgress size={24} color="inherit" /> : 'Login'}
             </Button>
           </Box>

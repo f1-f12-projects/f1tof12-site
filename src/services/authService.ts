@@ -5,6 +5,7 @@ import { UserRole } from '../types/roles';
 interface LoginRequest {
   username: string;
   password: string;
+  turnstile_token: string;
 }
 
 interface LoginResponse {
