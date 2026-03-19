@@ -32,7 +32,30 @@ jobs:
     
     - run: npm run build
     
-    - run: |
-        aws s3 sync build/ s3://${{ secrets.DEV_S3_BUCKET }} --delete
-        aws s3 website s3://${{ secrets.DEV_S3_BUCKET }} --index-document index.html --error-document index.html
-        aws cloudfront create-invalidation --distribution-id ${{ secrets.DEV_CLOUDFRONT_DISTRIBUTION_ID }} --paths "/*"
+    - run: aws s3 sync build/ s3://${{ secrets.DEV_S3_BUCKET }} --delete
+
+    - name: Configure CloudFront SPA error handling
+      run: |
+        DIST_ID="${{ secrets.DEV_CLOUDFRONT_DISTRIBUTION_ID }}"
+        RESULT=$(aws cloudfront get-distribution-config --id "$DIST_ID")
+        ETAG=$(echo "$RESULT" | jq -r '.ETag')
+        CONFIG=$(echo "$RESULT" | jq '.DistributionConfig | .CustomErrorResponses = {
+          "Quantity": 2,
+          "Items": [
+            {
+              "ErrorCode": 403,
+              "ResponsePagePath": "/index.html",
+              "ResponseCode": "200",
+              "ErrorCachingMinTTL": 0
+            },
+            {
+              "ErrorCode": 404,
+              "ResponsePagePath": "/index.html",
+              "ResponseCode": "200",
+              "ErrorCachingMinTTL": 0
+            }
+          ]
+        }')
+        aws cloudfront update-distribution --id "$DIST_ID" --if-match "$ETAG" --distribution-config "$CONFIG"
+
+    - run: aws cloudfront create-invalidation --distribution-id ${{ secrets.DEV_CLOUDFRONT_DISTRIBUTION_ID }} --paths "/*"
